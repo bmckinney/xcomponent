@@ -110,6 +110,26 @@ export class ParentComponent<P> extends BaseComponent<P> {
         this.onInit.catch(err => {
             return this.error(err);
         });
+
+        // ugly hack to update component width when browser window dimensions change
+        // see: https://github.com/krakenjs/xcomponent/issues/129
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizedFinished);
+            window.resizedFinished = setTimeout(() => {
+                [].forEach.call( window.document.querySelectorAll('iframe'),
+                    (elem) => {
+                        let outlet = elem.parentNode;
+                        if (outlet.classList.contains('xcomponent-outlet')) {
+                            outlet.style.width = '100%';
+                            outlet.parentNode.style.width = '100%';
+                            // expanding/contracting window vertically causes component to disappear for some reason...
+                            // outlet.style.height = '100%';
+                            // outlet.parentNode.style.height = '100%';
+                        }
+                    });
+            }, 250);
+        });
+
     }
 
     render(element : ElementRefType, loadUrl : boolean = true) : ZalgoPromise<ParentComponent<P>> {
