@@ -1,7 +1,8 @@
 /* @flow */
 
-import { dasherizeToCamel, replaceObject } from '../lib';
-import { type Component, type ComponentDriverType } from '../component/component';
+import { dasherizeToCamel, replaceObject } from 'belter/src';
+
+import type { Component, ComponentDriverType } from '../component/component';
 
 type AngularModule = {
     directive : (string, () => {
@@ -40,20 +41,20 @@ export let angular : ComponentDriverType<*, Angular> = {
 
                 restrict: 'E',
 
-                controller: ['$scope', '$element', ($scope, $element) => {
+                controller: [ '$scope', '$element', ($scope, $element) => {
 
                     if (component.looseProps && !$scope.props) {
-                        throw new Error(`For angular bindings to work, prop definitions must be passed to xcomponent.create`);
+                        throw new Error(`For angular bindings to work, prop definitions must be passed to zoid.create`);
                     }
 
                     component.log(`instantiate_angular_component`);
 
-                    function safeApply(fn) {
+                    function safeApply() {
                         if ($scope.$root.$$phase !== '$apply' && $scope.$root.$$phase !== '$digest') {
                             try {
                                 $scope.$apply();
                             } catch (err) {
-                                console.warn('Error trying to scope.apply on prop function call:', err);
+                                // pass
                             }
                         }
                     }
@@ -67,18 +68,21 @@ export let angular : ComponentDriverType<*, Angular> = {
                         } else {
                             scopeProps = {};
                             for (let key of Object.keys(scope)) {
-                                scopeProps[key] = $scope[key];
+                                if ($scope[key] !== undefined) {
+                                    scopeProps[key] = $scope[key];
+                                }
                             }
                         }
 
-                        scopeProps = replaceObject(scopeProps, (value, key, fullKey) => {
-                            if (typeof value === 'function') {
-                                return function() : mixed {
-                                    let result = value.apply(this, arguments);
+                        scopeProps = replaceObject(scopeProps, item => {
+                            if (typeof item === 'function') {
+                                return function angularWrapped() : mixed {
+                                    let result = item.apply(this, arguments);
                                     safeApply();
                                     return result;
                                 };
                             }
+                            return item;
                         });
 
                         return scopeProps;
@@ -90,7 +94,7 @@ export let angular : ComponentDriverType<*, Angular> = {
                     $scope.$watch(() => {
                         parent.updateProps(getProps());
                     });
-                }]
+                } ]
             };
         });
 

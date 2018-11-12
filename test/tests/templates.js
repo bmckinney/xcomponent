@@ -1,15 +1,17 @@
+/* @flow */
 
 import { onCloseWindow } from 'cross-domain-utils/src';
+
 import { testComponent } from '../component';
 
-describe('xcomponent templates and styles', () => {
+describe('zoid templates and styles', () => {
 
-    it('should focus an xcomponent popup on click of the overlay', done => {
+    it('should focus a zoid popup on click of the overlay', done => {
         testComponent.renderPopup({
 
             onEnter() {
 
-                this.window.focus = function() {
+                this.window.focus = () => {
                     done();
                 };
 
@@ -19,26 +21,26 @@ describe('xcomponent templates and styles', () => {
         });
     });
 
-    it('should close an xcomponent popup on click of the overlay close button', done => {
+    it('should close a zoid popup on click of the overlay close button', done => {
 
         testComponent.renderPopup({
 
             onEnter() {
                 let close = this.window.close;
 
-                this.window.close = function() {
+                this.window.close = function windowClose() {
                     close.apply(this, arguments);
                     done();
                 };
 
-                this.container.querySelector('.xcomponent-close').click();
+                this.container.querySelector('.zoid-close').click();
             }
 
         });
     });
 
 
-    it('should close an xcomponent iframe on click of the overlay close button', done => {
+    it('should close a zoid iframe on click of the overlay close button', done => {
 
         testComponent.renderIframe({
 
@@ -47,7 +49,7 @@ describe('xcomponent templates and styles', () => {
                     done();
                 }, 50);
 
-                this.container.querySelector('.xcomponent-close').click();
+                this.container.querySelector('.zoid-close').click();
             }
 
         }, document.body);

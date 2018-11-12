@@ -1,16 +1,19 @@
+/* @flow */
+
 import { onCloseWindow } from 'cross-domain-utils/src';
+
 import { testComponent } from '../component';
 
-describe('xcomponent actions', () => {
+describe('zoid actions', () => {
 
-    it('should close an xcomponent popup', done => {
+    it('should close a zoid popup', done => {
 
         testComponent.renderPopup({
 
             onEnter() {
                 let close = this.window.close;
 
-                this.window.close = function() {
+                this.window.close = function windowClose() {
                     close.apply(this, arguments);
                     done();
                 };
@@ -21,7 +24,7 @@ describe('xcomponent actions', () => {
         });
     });
 
-    it('should close an xcomponent iframe', done => {
+    it('should close a zoid iframe', done => {
 
         testComponent.renderIframe({
 
@@ -36,7 +39,7 @@ describe('xcomponent actions', () => {
         }, document.body);
     });
 
-    it('should focus an xcomponent popup', done => {
+    it('should focus a zoid popup', done => {
 
         testComponent.renderPopup({
 

@@ -1,8 +1,8 @@
-
+/* @flow */
 
 import { testComponent } from '../component';
 
-describe('xcomponent render to parent', () => {
+describe('zoid render to parent', () => {
 
     it('should render a component to the parent as an iframe', done => {
 
@@ -10,7 +10,7 @@ describe('xcomponent render to parent', () => {
             foo: done,
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
                     onEnter: function() {
                         return window.xprops.foo();
                     }
@@ -25,7 +25,7 @@ describe('xcomponent render to parent', () => {
             foo: done,
 
             run: `
-                xcomponent.getByTag('test-component2').renderPopupTo(window.parent, {
+                zoid.getByTag('test-component2').renderPopupTo(window.parent, {
                     onEnter: function() {
                         return window.xprops.foo();
                     }
@@ -42,7 +42,7 @@ describe('xcomponent render to parent', () => {
             },
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
                     onEnter: function() {
                         return window.xprops.foo();
                     }
@@ -57,7 +57,7 @@ describe('xcomponent render to parent', () => {
             foo: done,
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
                     foo: function() {
                         window.xprops.foo();
                     },
@@ -75,7 +75,7 @@ describe('xcomponent render to parent', () => {
             foo: done,
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
                     foo: function() {
                         window.xprops.foo();
                     },
@@ -94,7 +94,7 @@ describe('xcomponent render to parent', () => {
             foo: done,
 
             run: `
-                xcomponent.getByTag('test-component2').renderPopupTo(window.parent, {
+                zoid.getByTag('test-component2').renderPopupTo(window.parent, {
                     foo: function() {
                         window.xprops.foo();
                     },
@@ -112,7 +112,7 @@ describe('xcomponent render to parent', () => {
             onClose: () => done(),
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
                     onEnter: function() {
                         this.close();
                     },
@@ -125,17 +125,23 @@ describe('xcomponent render to parent', () => {
         }, document.body);
     });
 
-    it('should close an xcomponent renderToParent iframe on click of the overlay close button', done => {
+    it('should close a zoid renderToParent iframe on click of the overlay close button', done => {
 
         testComponent.renderIframe({
-            childEntered() {
-                document.querySelector('.xcomponent-tag-test-component2 .xcomponent-close').click();
+            childEntered: () => {
+                let closeButton = document.querySelector('.zoid-tag-test-component2 .zoid-close');
+
+                if (!closeButton) {
+                    return done(new Error(`Expected close button to be present`));
+                }
+
+                closeButton.click();
             },
 
             foo: () => done(),
 
             run: `
-                xcomponent.getByTag('test-component2').renderIframeTo(window.parent, {
+                zoid.getByTag('test-component2').renderIframeTo(window.parent, {
 
                     onEnter: function() {
 
@@ -156,18 +162,24 @@ describe('xcomponent render to parent', () => {
         }, document.body);
     });
 
-    it('should close an xcomponent renderToParent popup on click of the overlay close button', done => {
+    it('should close a zoid renderToParent popup on click of the overlay close button', done => {
 
         testComponent.renderIframe({
 
-            childEntered() {
-                document.querySelector('.xcomponent-tag-test-component2 .xcomponent-close').click();
+            childEntered: () => {
+                let closeButton = document.querySelector('.zoid-tag-test-component2 .zoid-close');
+
+                if (!closeButton) {
+                    return done(new Error(`Expected close button to be present`));
+                }
+
+                closeButton.click();
             },
 
             foo: () => done(),
 
             run: `
-                xcomponent.getByTag('test-component2').renderPopupTo(window.parent, {
+                zoid.getByTag('test-component2').renderPopupTo(window.parent, {
 
                     onEnter: function() {
 
@@ -185,18 +197,24 @@ describe('xcomponent render to parent', () => {
         }, document.body);
     });
 
-    it('should focus an xcomponent renderToParent popup on click of the overlay', done => {
+    it('should focus a zoid renderToParent popup on click of the overlay', done => {
 
         testComponent.renderIframe({
 
-            childEntered() {
-                document.querySelector('.xcomponent-tag-test-component2').click();
+            childEntered: () => {
+                let overlayElement = document.querySelector('.zoid-tag-test-component2');
+
+                if (!overlayElement) {
+                    return done(new Error(`Expected overlay element to be present`));
+                }
+
+                overlayElement.click();
             },
 
             foo: () => done(),
 
             run: `
-                xcomponent.getByTag('test-component2').renderPopupTo(window.parent, {
+                zoid.getByTag('test-component2').renderPopupTo(window.parent, {
 
                     onEnter: function() {
 

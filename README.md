@@ -1,43 +1,42 @@
-<p align="center"><img width="35%"  src="https://cdn.rawgit.com/krakenjs/xcomponent/master/xc.svg"></p>
+<p align="center"><img width="45%"  src="https://cdn.rawgit.com/krakenjs/zoid/master/zoid.png"></p>
 
 ----
-
-<img src="https://cdn.rawgit.com/krakenjs/xcomponent/master/xcomponent.svg">
 
 A cross-domain component toolkit, supporting:
 
 - Render an iframe or popup on a different domain, and pass down props, including objects and functions
 - Call callbacks natively from the child window without worrying about post-messaging or cross-domain restrictions
 - Create and expose components to share functionality from your site to others!
+- Render your component directly as a React, Vue or Angular component!
 
-It's 'data-down, actions up', but 100% cross-domain! You can even use it directly with libraries like React and Angular.
+It's 'data-down, actions up' style components, but 100% cross-domain using iframes and popups!
 
 -----
 
 ### [API Docs](./docs/api.md)
 
-Public options and methods supported by xcomponent
+Public options and methods supported by zoid
 
-### [Demos](http://krakenjs.com/xcomponent/demo/index.htm)
+### [Demos](http://krakenjs.com/zoid/demo/index.htm)
 
-Working demos of different xcomponent patterns
+Working demos of different zoid patterns
 
-### [Demo App](https://github.com/krakenjs/xcomponent-demo)
+### [Demo App](https://github.com/krakenjs/zoid-demo)
 
 Forkable demo app with build, test, publishing and demos pre-configured.
 
 ### [Example](./docs/example.md)
 
-A full example of a cross-domain component using xcomponent
+A full example of a cross-domain component using zoid
 
 -----
 
 ### Quick example
 
-Define a component:
+Define a component to be put on both the parent and child pages:
 
 ```javascript
-var MyLoginComponent = xcomponent.create({
+var MyLoginComponent = zoid.create({
 
     tag: 'my-login-component',
     url: 'http://www.my-site.com/my-login-component'
@@ -47,15 +46,20 @@ var MyLoginComponent = xcomponent.create({
 Render the component on the parent page:
 
 ```javascript
-MyLoginComponent.render({
+<div id="container"></div>
 
-    prefilledEmail: 'foo@bar.com',
+<script src="script-where-my-login-component-is-defined.js"></script>
+<script>
+    MyLoginComponent.render({
 
-    onLogin: function(email) {
-        console.log('User logged in with email:', email);
-    }
+        prefilledEmail: 'foo@bar.com',
 
-}, '#container');
+        onLogin: function(email) {
+            console.log('User logged in with email:', email);
+        }
+
+    }, '#container');
+</script>
 ```
 
 Implement the component in the iframe:
@@ -65,12 +69,17 @@ Implement the component in the iframe:
 <input type="password" id="password" />
 <button id="login">Log In</button>
 
+<script src="script-where-my-login-component-is-defined.js"></script>
 <script>
     var email = document.querySelector('#email');
     var password = document.querySelector('#password');
     var button = document.querySelector('#login');
 
     email.value = window.xprops.prefilledEmail;
+
+    function validUser (email, password) {
+      return email && password;
+    }
 
     button.addEventListener('click', function() {
         if (validUser(email.value, password.value)) {
@@ -82,17 +91,17 @@ Implement the component in the iframe:
 
 ### Useful Links
 
-- [Introducing xcomponent](https://medium.com/@bluepnume/introducing-xcomponent-seamless-cross-domain-web-components-from-paypal-c0144f3e82bf#.ikbg9r1ml)
+- [Introducing zoid](https://medium.com/@bluepnume/introducing-zoid-seamless-cross-domain-web-components-from-paypal-c0144f3e82bf#.ikbg9r1ml)
 - [Turn your web-app into a cross-domain component with five lines of code](https://medium.com/@bluepnume/turn-your-web-app-into-a-cross-domain-component-with-5-lines-of-code-ced01e6795f9#.w8ea7h6ky)
-- [A full example of how to implement and use an xcomponent](./docs/example.md)
-- [Building PayPal's Button with xcomponent](https://medium.com/@bluepnume/less-is-more-reducing-thousands-of-paypal-buttons-into-a-single-iframe-using-xcomponent-d902d71d8875#.o3ib7y58n)
-- [PayPal Checkout - xcomponent powered Button and Checkout components](https://github.com/paypal/paypal-checkout)
-- [Post-Robot - the cross-domain messaging library which powers xcomponent](https://github.com/krakenjs/post-robot)
+- [A full example of how to implement and use a zoid](./docs/example.md)
+- [Building PayPal's Button with zoid](https://medium.com/@bluepnume/less-is-more-reducing-thousands-of-paypal-buttons-into-a-single-iframe-using-zoid-d902d71d8875#.o3ib7y58n)
+- [PayPal Checkout - zoid powered Button and Checkout components](https://github.com/paypal/paypal-checkout)
+- [Post-Robot - the cross-domain messaging library which powers zoid](https://github.com/krakenjs/post-robot)
 
 #### Framework Specific
 
-- [Build a cross-domain React component](https://medium.com/@bluepnume/creating-a-cross-domain-react-component-with-xcomponent-fbcccc4778fd#.73jnwv44c)
-- [Introducing support for cross-domain Glimmer components, with xcomponent](https://medium.com/@bluepnume/introducing-support-for-cross-domain-glimmer-components-with-xcomponent-21287c9f91f1)
+- [Build a cross-domain React component](https://medium.com/@bluepnume/creating-a-cross-domain-react-component-with-zoid-fbcccc4778fd#.73jnwv44c)
+- [Introducing support for cross-domain Glimmer components, with zoid](https://medium.com/@bluepnume/introducing-support-for-cross-domain-glimmer-components-with-zoid-21287c9f91f1)
 
 ## Rationale
 
@@ -117,10 +126,10 @@ You could just use a vanilla iframe for all of this. But:
 - You need to think carefully about how to expose all this functionality behind a simple, clear interface.
 
 
-**xcomponent solves all of these problems.**
+**zoid solves all of these problems.**
 
 - You pass data and callbacks down as a javascript object
-- xcomponent renders the component and passes down the data
+- zoid renders the component and passes down the data
 - The child calls your callbacks when it's ready
 
 It will even automatically generate React and Angular bindings, so people can drop-in your component anywhere and not
@@ -129,9 +138,9 @@ worry about iframes or post-messages.
 
 ## FAQ
 
-- **Do I need to use a particular framework like React to use xcomponent?**
+- **Do I need to use a particular framework like React to use zoid?**
 
-  No, xcomponent is framework agnostic. You can:
+  No, zoid is framework agnostic. You can:
 
   - Use it with vanilla javascript.
   - Use it with any framework of your choice.
@@ -140,23 +149,23 @@ worry about iframes or post-messages.
 - **Why write another ui / component library?**
 
   This isn't designed to replace libraries like React, which are responsible for rendering same-domain components. In fact, the only
-  real rendering xcomoponent does is iframes and popups; the rest is up to you! You can build your components using any framework,
-  library or pattern you want, then use xcomponent to expose your components cross-domain. It should play nicely with any other framework!
+  real rendering zoid does is iframes and popups; the rest is up to you! You can build your components using any framework,
+  library or pattern you want, then use zoid to expose your components cross-domain. It should play nicely with any other framework!
 
 - **Aren't iframes really slow?**
 
   Yes, but there are a few things to bear in mind here:
 
-  - xcomponent isn't designed for building components for your own site. For that you should use native component libraries
-    like React, which render quickly onto your page. Use xcomponent to share functionality with other sites, that you can't
+  - zoid isn't designed for building components for your own site. For that you should use native component libraries
+    like React, which render quickly onto your page. Use zoid to share functionality with other sites, that you can't
     share native-javascript components with
 
-  - xcomponent also provides mechanisms for pre-rendering html and css into iframes and popups, so you can at least render a
+  - zoid also provides mechanisms for pre-rendering html and css into iframes and popups, so you can at least render a
     loading spinner, or maybe something more advanced, while the new window loads its content.
 
-- **I don't want to bother with popups, can I get xcomponent with just the iframe support?**
+- **I don't want to bother with popups, can I get zoid with just the iframe support?**
 
-  You can indeed. There's an `xcomponent.frame.js` and `xcomponent.frame.min.js` in the `dist/` folder. There's a lot of
+  You can indeed. There's an `zoid.frame.js` and `zoid.frame.min.js` in the `dist/` folder. There's a lot of
   magic that's needed to make popups work with IE, and that's all trimmed out.
 
 - **Can I contribute?**
@@ -165,7 +174,7 @@ worry about iframes or post-messages.
 
 - **Is this different to [react-frame-component](https://github.com/ryanseddon/react-frame-component)?**
 
-  Yes. `react-frame-component` allows you to render html into a sandboxed iframe on the same domain. `xcomponent` is geared
+  Yes. `react-frame-component` allows you to render html into a sandboxed iframe on the same domain. `zoid` is geared
   around sharing functionality from one domain to another, in a cross-domain iframe.
 
 ## Browser Support
@@ -175,7 +184,3 @@ worry about iframes or post-messages.
 - Firefox 30+
 - Safari 5.1+
 - Opera 23+
-
-## Notes
-
-- Please note this project has no involvement with Invivoo Software's [XComponent](http://www.xcomponent.com/).

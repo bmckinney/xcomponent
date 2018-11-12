@@ -2,19 +2,22 @@
 
 import { ZalgoPromise } from 'zalgo-promise/src';
 import { on } from 'post-robot/src';
+import { type CrossDomainWindowType } from 'cross-domain-utils/src';
+import { copyProp, eventEmitter, type EventEmitterType, stringifyError, noop } from 'belter/src';
 
-import { copyProp, eventEmitter, type EventEmitterType, stringifyError } from '../lib';
-import { type Component } from './component';
+import type { CancelableType } from '../types';
 
-type CleanupType = {
-    set : <T : mixed >(string, T) => T,
+import type { Component } from './component';
+
+type CleanupType<T : mixed> = {
+    set : (string, T) => T,
     register : (string | Function, ?Function) => void,
     hasTasks : () => boolean,
     all : () => ZalgoPromise<void>,
     run : (string) => ZalgoPromise<void>
 };
 
-function cleanup(obj : Object) : CleanupType {
+function cleanup(obj : Object) : CleanupType<*> {
 
     let tasks = [];
     let cleaned = false;
@@ -42,7 +45,7 @@ function cleanup(obj : Object) : CleanupType {
             }
 
             if (typeof method !== 'function') {
-                throw new Error(`Expected to be passed function to clean.register`);
+                throw new TypeError(`Expected to be passed function to clean.register`);
             }
 
             if (cleaned) {
@@ -95,13 +98,10 @@ function cleanup(obj : Object) : CleanupType {
                 }
             }
 
-            return ZalgoPromise.all(results).then(() => {
-                return;
-            });
+            return ZalgoPromise.all(results).then(noop);
         }
     };
 }
-
 
 
 /*  Base Component
@@ -113,7 +113,7 @@ function cleanup(obj : Object) : CleanupType {
 
 export class BaseComponent<P> {
 
-    clean : CleanupType
+    clean : CleanupType<*>
     event : EventEmitterType
     component : Component<P>
 
@@ -165,16 +165,20 @@ export class BaseComponent<P> {
 
         for (let listenerName of Object.keys(listeners)) {
 
-            let name = listenerName.replace(/^xcomponent_/, '');
+            let name = listenerName.replace(/^zoid_/, '');
 
-            let listener = on(listenerName, { window: win, domain, errorHandler: err => { this.error(err); } }, ({ source, data }) => {
-                this.component.log(`listener_${name}`);
+            let errorHandler = (err) => {
+                this.error(err);
+            };
+
+            let listener = on(listenerName, { window: win, domain, errorHandler }, ({ source, data }) => {
+                this.component.log(`listener_${ name }`);
                 return listeners[listenerName].call(this, source, data);
             });
 
-            let errorListener = on(listenerName, { window: win, errorHandler: err => { this.error(err); } }, ({ origin, data }) => {
-                this.component.logError(`unexpected_listener_${name}`, { origin, domain: domain.toString() });
-                this.error(new Error(`Unexpected ${name} message from domain ${origin} -- expected message from ${ domain.toString() }`));
+            let errorListener = on(listenerName, { window: win, errorHandler }, ({ origin }) => {
+                this.component.logError(`unexpected_listener_${ name }`, { origin, domain: domain.toString() });
+                this.error(new Error(`Unexpected ${ name } message from domain ${ origin } -- expected message from ${ domain.toString() }`));
             });
 
             this.clean.register(() => {

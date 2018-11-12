@@ -1,15 +1,16 @@
+/* @flow */
+/* @jsx jsxDom */
 
+import zoid from '../src';
 
-import xcomponent from 'src/index';
-
-window.xcomponent = xcomponent;
+window.zoid = zoid;
 
 function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, jsxDom }) {
 
     function close(event) {
         event.preventDefault();
         event.stopPropagation();
-        return actions.close();
+        return actions.close('foo');
     }
 
     function focus(event) {
@@ -19,11 +20,11 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
     }
 
     return (
-        <div id={ id } onClick={ focus } class={ `${ CLASS.XCOMPONENT } ${ CLASS.XCOMPONENT }-tag-${ tag } ${ CLASS.XCOMPONENT }-context-${ context } ${ CLASS.XCOMPONENT }-focus` }>
+        <div id={ id } onClick={ focus } class={ `${ CLASS.ZOID } ${ CLASS.ZOID }-tag-${ tag } ${ CLASS.ZOID }-context-${ context } ${ CLASS.ZOID }-focus` }>
 
-            <a href="#" onClick={ close } class={ `${ CLASS.XCOMPONENT }-close` }></a>
+            <a href="#" onClick={ close } class={ `${ CLASS.ZOID }-close` }></a>
 
-            { outlet }
+            <node el={ outlet } />
 
             <style>
                 {`
@@ -36,11 +37,11 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
                         background-color: rgba(0, 0, 0, 0.8);
                     }
 
-                    #${ id }.${ CLASS.XCOMPONENT }-context-${ CONTEXT.POPUP } {
+                    #${ id }.${ CLASS.ZOID }-context-${ CONTEXT.POPUP } {
                         cursor: pointer;
                     }
 
-                    #${ id }.${ CLASS.XCOMPONENT }-context-${ CONTEXT.IFRAME } .${CLASS.OUTLET} {
+                    #${ id }.${ CLASS.ZOID }-context-${ CONTEXT.IFRAME } .${ CLASS.OUTLET } {
                         box-shadow: 2px 2px 10px 3px rgba(0, 0, 0, 0.4);
                         position: fixed;
                         top: 50%;
@@ -52,12 +53,12 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
                         -ms-transform: translate3d(-50%, -50%, 0);
                     }
 
-                    #${ id }.${ CLASS.XCOMPONENT }-context-${ CONTEXT.IFRAME } iframe {
+                    #${ id }.${ CLASS.ZOID }-context-${ CONTEXT.IFRAME } iframe {
                         height: 100%;
                         width: 100%;
                     }
 
-                    #${ id } .${ CLASS.XCOMPONENT }-close {
+                    #${ id } .${ CLASS.ZOID }-close {
                         position: absolute;
                         right: 16px;
                         top: 16px;
@@ -66,12 +67,12 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
                         opacity: 0.6;
                     }
 
-                    #${ id } .${ CLASS.XCOMPONENT }-close:hover {
+                    #${ id } .${ CLASS.ZOID }-close:hover {
                         opacity: 1;
                     }
 
-                    #${ id } .${ CLASS.XCOMPONENT }-close:before,
-                    #${ id } .${ CLASS.XCOMPONENT }-close:after {
+                    #${ id } .${ CLASS.ZOID }-close:before,
+                    #${ id } .${ CLASS.ZOID }-close:after {
                         position: absolute;
                         left: 8px;
                         content: ' ';
@@ -80,11 +81,11 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
                         background-color: white;
                     }
 
-                    #${ id } .${ CLASS.XCOMPONENT }-close:before {
+                    #${ id } .${ CLASS.ZOID }-close:before {
                         transform: rotate(45deg);
                     }
 
-                    #${ id } .${ CLASS.XCOMPONENT }-close:after {
+                    #${ id } .${ CLASS.ZOID }-close:after {
                         transform: rotate(-45deg);
                     }
                 `}
@@ -93,14 +94,14 @@ function containerTemplate({ id, CLASS, CONTEXT, tag, context, actions, outlet, 
     );
 }
 
-export let testComponent = xcomponent.create({
+export let testComponent = zoid.create({
 
     tag: 'test-component',
 
     singleton: true,
 
     url: {
-        dev: '/base/test/child.htm?devenv=true',
+        dev:    '/base/test/child.htm?devenv=true',
         custom: '/base/test/child.htm?customenv=true'
     },
 
@@ -108,87 +109,91 @@ export let testComponent = xcomponent.create({
 
     contexts: {
         iframe: true,
-        popup: true
+        popup:  true
     },
 
-    containerTemplate: containerTemplate,
+    containerTemplate,
+
+    validate(component, { invalidate }) {
+        if (invalidate === true) {
+            throw new Error('Invalidated prop is defined as true');
+        }
+    },
 
     props: {
         childEntered: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         sendUrl: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         foo: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         complete: {
-            type: 'function',
+            type:     'function',
             required: false
         },
-
-        memoizedFunction: {
-            type: 'function',
-            required: false,
-            memoize: true
-        },
-
-        onceFunction: {
-            type: 'function',
-            required: false,
-            once: true
-        },
-
-        denodeifyFunction: {
-            type: 'function',
-            required: false,
-            denodeify: true
-        },
-
+        
         booleanProp: {
-            type: 'boolean',
+            type:     'boolean',
             required: false
         },
 
         functionProp: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         objectProp: {
-            type: 'object',
+            type:     'object',
             required: false
         },
 
         stringProp: {
-            type: 'string',
+            type:     'string',
             required: false
         },
 
         numberProp: {
-            type: 'number',
+            type:     'number',
             required: false
         },
 
         run: {
-            type: 'string',
+            type:     'string',
             required: false
+        },
+
+        invalidate: {
+            type:     'boolean',
+            required: false
+        },
+
+        validateProp: {
+            type:     'string',
+            required: false,
+
+            validate(validate) {
+                if (validate && validate !== 'validate') {
+                    throw new Error('String does not equal "validate"');
+                }
+            }
         }
     }
 });
 
-export let testComponent2 = xcomponent.create({
+export let testComponent2 = zoid.create({
 
     tag: 'test-component2',
 
-    containerTemplate: containerTemplate,
+    containerTemplate,
 
     url: {
         dev: '/base/test/child.htm?devenv=true'
@@ -198,32 +203,32 @@ export let testComponent2 = xcomponent.create({
 
     contexts: {
         iframe: true,
-        popup: true
+        popup:  true
     },
 
     props: {
         foo: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         sendUrl: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         run: {
-            type: 'string',
+            type:     'string',
             required: false
         }
     }
 });
 
-export let testComponent3 = xcomponent.create({
+export let testComponent3 = zoid.create({
 
     tag: 'test-component3',
 
-    containerTemplate: containerTemplate,
+    containerTemplate,
 
     url: {
         dev: '/base/test/child.htm?devenv=true'
@@ -233,41 +238,41 @@ export let testComponent3 = xcomponent.create({
 
     props: {
         foo: {
-            type: 'function',
+            type:     'function',
             required: false
         },
 
         sendUrl: {
-            type: 'function',
+            type:     'function',
             required: false
         }
     },
 
     contexts: {
-        popup: true,
+        popup:  true,
         iframe: false
     }
 });
 
-export let testComponent4 = xcomponent.create({
+export let testComponent4 = zoid.create({
 
     tag: 'test-component4',
 
-    containerTemplate: containerTemplate,
+    containerTemplate,
 
     url: {
         dev: '/base/test/child.htm?devenv=true'
     },
 
-    defaultEnv: 'dev',
+    defaultEnv: 'dev'
 });
 
 
-export let testComponent5 = xcomponent.create({
+export let testComponent5 = zoid.create({
 
     tag: 'test-component5',
 
-    containerTemplate: containerTemplate,
+    containerTemplate,
 
     url: {
         dev: '/base/test/child.htm?devenv=true'
@@ -277,108 +282,83 @@ export let testComponent5 = xcomponent.create({
 
     props: {
         foo: {
-            type: 'function',
+            type:     'function',
             required: true
         }
     },
 
     contexts: {
-        popup: false,
+        popup:  false,
         iframe: true
     }
 });
 
 
-export let testComponent_no_logLevel_configured = xcomponent.create({
-
-    tag: 'test-component-no-log-level',
-
-    url: {
-        dev: '/base/test/child.htm?devenv=true',
-        custom: '/base/test/child.htm?customenv=true'
-    },
-
-    defaultEnv: 'dev'
-});
-
-export let testComponent_logLevel_configured = xcomponent.create({
-
-    tag: 'test-component-log-level',
-
-    defaultLogLevel: 'error',
-
-    url: {
-        dev: '/base/test/child.htm?devenv=true',
-        custom: '/base/test/child.htm?customenv=true'
-    },
-
-    defaultEnv: 'dev'
-});
-
-
-export let testComponent_parentDomains_string = xcomponent.create({
+export let testComponent_parentDomains_string = zoid.create({
     tag: 'test-component-parent-domains-string',
 
     allowedParentDomains: 'http://www.somedomain.com',
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
-export let testComponent_parentDomains_array_of_strings = xcomponent.create({
+export let testComponent_parentDomains_array_of_strings = zoid.create({
     tag: 'test-component-parent-domain-array-of-strings',
 
-    allowedParentDomains: ['http://www.somedomain.com', 'http://www.otherdomain.com'],
+    allowedParentDomains: [ 'http://www.somedomain.com', 'http://www.otherdomain.com' ],
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
 
-export let testComponent_parentDomains_array_of_regex = xcomponent.create({
+export let testComponent_parentDomains_array_of_regex = zoid.create({
     tag: 'test-component-parent-domains-array-of-regex',
 
-    allowedParentDomains: [/^http\:\/\/www.somedomain.com$/, /^http\:\/\/www.otherdomain.com$/],
+    // $FlowFixMe
+    allowedParentDomains: [ /^http\:\/\/www.somedomain.com$/, /^http\:\/\/www.otherdomain.com$/ ],
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
-export let testComponent_parentDomains_string_match = xcomponent.create({
+export let testComponent_parentDomains_string_match = zoid.create({
     tag: 'test-component-parent-domains-string-match',
 
-    allowedParentDomains: 'http://localhost:9876',
+    allowedParentDomains: `${ window.location.protocol }//${ window.location.host }`,
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
-export let testComponent_parentDomains_array_of_strings_match = xcomponent.create({
+export let testComponent_parentDomains_array_of_strings_match = zoid.create({
     tag: 'test-component-parent-domains-array-of-strings-match',
 
-    allowedParentDomains: ['http://www.somedomain.com', 'http://localhost:9876'],
+    allowedParentDomains: [ 'http://www.somedomain.com', `${ window.location.protocol }//${ window.location.host }` ],
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
-export let testComponent_parentDomains_array_of_strings_match_wildcard = xcomponent.create({
+export let testComponent_parentDomains_array_of_strings_match_wildcard = zoid.create({
     tag: 'test-component-parent-domains-array-of-strings-match-wildcard',
 
-    allowedParentDomains: ['http://www.somedomain.com', '*'],
+    allowedParentDomains: [ 'http://www.somedomain.com', '*' ],
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
 
-export let testComponent_parentDomains_string_match_wildcard = xcomponent.create({
+export let testComponent_parentDomains_string_match_wildcard = zoid.create({
     tag: 'test-component-parent-domains-string-match-wildcard',
 
     allowedParentDomains: '*',
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });
 
 
-export let testComponent_parentDomains_array_of_regex_match = xcomponent.create({
+export let testComponent_parentDomains_array_of_regex_match = zoid.create({
     tag: 'test-component-parent-domains-array-of-regex-match',
 
-    allowedParentDomains: [/^http\:\/\/www.somedomain.com$/, /^http\:\/\/localhost\:9876$/],
+    // $FlowFixMe
+    allowedParentDomains: [ /^http\:\/\/www.somedomain.com$/, new RegExp(`^${ window.location.protocol }//${ window.location.host }$`) ], // eslint-disable-line security/detect-non-literal-regexp
 
-    url: '/base/test/child.htm?devenv=true',
+    url: '/base/test/child.htm?devenv=true'
 });

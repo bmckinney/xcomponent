@@ -1,98 +1,95 @@
+/* @flow */
 
+import { assert } from 'chai';
 
-import xcomponent from 'src/index';
-
+import zoid from '../../src';
 import { testComponent, testComponent5 } from '../component';
 
-describe('xcomponent validation errors', () => {
+describe('zoid validation errors', () => {
 
     function expectError(description, method) {
         try {
             method();
         } catch (err) {
-            assert.isTrue(err instanceof Error, `Expected Error for use case: ${description}, got ${typeof err}`);
+            assert.isTrue(err instanceof Error, `Expected Error for use case: ${ description }, got ${ typeof err }`);
             return;
         }
 
-        throw new Error(`Expected Error for use case: ${description}`);
+        throw new Error(`Expected Error for use case: ${ description }`);
     }
 
     it('should throw validation errors when a component is created without the correct options', () => {
 
         expectError('Empty options', () => {
-            xcomponent.create({});
+            // $FlowFixMe
+            zoid.create({});
         });
 
         expectError('Special chars in tag name', () => {
-            xcomponent.create({
+            zoid.create({
                 tag: 'special$%&-chars'
             });
         });
 
         expectError('String passed for dimensions', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: 'moo'
             });
         });
 
         expectError('Empty options passed for dimensions', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {}
             });
         });
 
         expectError('Strings passed for dimensions', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: 'foo',
-                    width: 'bar'
+                    width:  'bar'
                 }
             });
         });
 
         expectError('String passed for height', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: 'foo',
-                    width: 50
-                }
-            });
-        });
-
-        expectError('No url passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
-                dimensions: {
-                    height: '50px',
-                    width: '200px'
+                    width:  50
                 }
             });
         });
 
         expectError('Props passed as string', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:   'http://zombo.com',
                 props: 'foo'
             });
         });
 
         expectError('Prop passed as string', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:   'http://zombo.com',
                 props: {
                     moo: 'wat'
                 }
@@ -100,13 +97,14 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Invalid prop type passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:   'http://zombo.com',
                 props: {
                     moo: {
                         type: 'invalid'
@@ -116,13 +114,14 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Empty prop definition', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:   'http://zombo.com',
                 props: {
                     onSomething: {
 
@@ -132,131 +131,132 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Required and default passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:   'http://zombo.com',
                 props: {
                     onSomething: {
-                        type: 'function',
+                        type:     'function',
                         required: true,
-                        def() {}
+                        def() { /* pass */ }
                     }
                 }
             });
         });
 
         expectError('Invalid context passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:      'http://zombo.com',
                 contexts: {
                     invalid: true,
-                    popup: false
+                    popup:   false
                 }
             });
         });
 
         expectError('No contexts enabled', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:      'http://zombo.com',
                 contexts: {
                     iframe: false,
-                    popup: false
+                    popup:  false
                 }
             });
         });
 
-        xcomponent.create({
-            tag: 'my-component-working-2',
+        zoid.create({
+            tag:        'my-component-working-2',
             dimensions: {
                 height: '50px',
-                width: '200px'
+                width:  '200px'
             },
-            url: 'http://zombo.com',
+            url:      'http://zombo.com',
             contexts: {
                 iframe: true,
-                popup: false
+                popup:  false
             }
         });
 
         expectError('Invalid default context', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 contexts: {
                     iframe: true,
-                    popup: false
+                    popup:  false
                 },
-                url: 'http://zombo.com',
+                url:            'http://zombo.com',
                 defaultContext: 'moo'
             });
         });
 
         expectError('Default context disabled', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
-                url: 'http://zombo.com',
+                url:      'http://zombo.com',
                 contexts: {
                     iframe: true,
-                    popup: false
+                    popup:  false
                 },
                 defaultContext: 'popup'
             });
         });
 
-        xcomponent.create({
-            tag: 'my-component',
+        zoid.create({
+            tag:        'my-component',
             dimensions: {
                 height: '50px',
-                width: '200px'
+                width:  '200px'
             },
-            url: 'http://zombo.com',
+            url:      'http://zombo.com',
             contexts: {
                 iframe: true,
-                popup: false
+                popup:  false
             },
             defaultContext: 'iframe'
         });
 
         expectError('Undefined url', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 url: {
+                    // $FlowFixMe
                     foo: undefined
                 }
             });
         });
 
         expectError('No default env passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 url: {
                     foo: 'http://www.zombo.com'
@@ -265,11 +265,12 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Invalid default env passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 envUrls: {
                     foo: 'http://www.zombo.com'
@@ -279,22 +280,22 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Default env passed with no urls', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 defaultEnv: 'moo'
             });
         });
 
         expectError('Default env passed with empty urls', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 url: {
 
@@ -304,11 +305,12 @@ describe('xcomponent validation errors', () => {
         });
 
         expectError('Invalid url passed', () => {
-            xcomponent.create({
-                tag: 'my-component',
+            // $FlowFixMe
+            zoid.create({
+                tag:        'my-component',
                 dimensions: {
                     height: '50px',
-                    width: '200px'
+                    width:  '200px'
                 },
                 url: 12345
             });
@@ -325,13 +327,13 @@ describe('xcomponent validation errors', () => {
 
         expectError('Object passed for string prop', () => {
             testComponent.init({
-                stringProp() {}
+                stringProp() { /* pass */ }
             });
         });
 
         expectError('Object passed fro number prop', () => {
             testComponent.init({
-                numberProp() {}
+                numberProp() { /* pass */ }
             });
         });
 
@@ -355,6 +357,7 @@ describe('xcomponent validation errors', () => {
         */
 
         expectError('No props passed', () => {
+            // $FlowFixMe
             testComponent5.init();
         });
     });

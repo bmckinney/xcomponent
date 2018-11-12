@@ -1,7 +1,8 @@
 /* @flow */
 
-import { isSameDomain } from 'cross-domain-utils/src';
-import { __XCOMPONENT__ } from '../constants';
+import { isSameDomain, type CrossDomainWindowType } from 'cross-domain-utils/src';
+
+import { __ZOID__ } from '../constants';
 
 export function globalFor(win : CrossDomainWindowType) : ?Object {
 
@@ -9,11 +10,11 @@ export function globalFor(win : CrossDomainWindowType) : ?Object {
         return;
     }
 
-    if (!win[__XCOMPONENT__]) {
-        win[__XCOMPONENT__] = {};
+    if (!win[__ZOID__]) {
+        win[__ZOID__] = {};
     }
 
-    return win[__XCOMPONENT__];
+    return win[__ZOID__];
 }
 
 export function localGlobal() : Object {

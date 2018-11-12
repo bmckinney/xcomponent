@@ -1,12 +1,14 @@
 /* @flow */
 
-import { onCloseWindow } from 'cross-domain-utils/src';
-import { type ZalgoPromise } from 'zalgo-promise/src';
+import { onCloseWindow, type CrossDomainWindowType } from 'cross-domain-utils/src';
+import { ZalgoPromise } from 'zalgo-promise/src';
+import { noop } from 'belter/src';
 
 import { BaseComponent } from '../base';
 import { ParentComponent } from '../parent';
 import { RENDER_DRIVERS, type ContextDriverType } from '../parent/drivers';
-import { type Component } from '../component';
+import type { Component } from '../component';
+import type { CancelableType, DimensionsType } from '../../types';
 
 export type DelegatePropsType = {
     uid : string,
@@ -67,22 +69,12 @@ export class DelegateComponent<P> extends BaseComponent<P> {
         }
 
         this.focus = () => {
-            if (this.driver.openOnFocus) {
-                try {
-                    let win = window.open('', this.childWindowName);
-                    if (win) {
-                        win.focus();
-                    }
-                } catch (err) {
-                    // pass
-                }
-            }
             return options.overrides.focus.call(this);
         };
 
         this.clean.register('destroyFocusOverride', () => {
             // $FlowFixMe
-            this.focus = () => {};
+            this.focus = noop;
         });
 
         this.userClose = options.overrides.userClose;
@@ -127,7 +119,7 @@ export class DelegateComponent<P> extends BaseComponent<P> {
         let self = this;
 
         for (let key of Object.keys(delegateOverrides)) {
-            overrides[key] = function() : mixed {
+            overrides[key] = function delegateOverride() : mixed {
                 // $FlowFixMe
                 return ParentComponent.prototype[key].apply(self, arguments);
             };

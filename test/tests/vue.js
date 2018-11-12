@@ -1,3 +1,7 @@
+/* @flow */
+
+import { assert } from 'chai';
+import { ZalgoPromise } from 'zalgo-promise/src';
 
 import { testComponent } from '../component';
 
@@ -9,29 +13,30 @@ describe('vue drivers', () => {
             return done(new Error('Can not find document.body'));
         }
 
-        let app = document.createElement('div');
-        document.body.appendChild(app);
-        app.setAttribute('id', 'container');
+        const app = document.createElement('div');
+        const vueComponent = testComponent.driver('vue');
 
-        window.Vue.component('comp', {
-            template: `<vue-component :onEnter = "onEnter"></vue-component>`,
-            components: {
-                'vue-component': testComponent.driver('vue')
+        if (!document.body) {
+            throw new Error(`Expected document.body to be present`);
+        }
+        document.body.appendChild(app);
+
+        new window.Vue({
+            render(createElement) : Element {
+                return createElement(vueComponent, {
+                    attrs: {
+                        onEnter: this.onEnter
+                    }
+                });
             },
             computed: {
                 onEnter: () => {
-                    return function () {
-                        this.close().then(done);
+                    return function onEnter() : ZalgoPromise<void> {
+                        return this.close().then(done);
                     };
                 }
             }
-        });
-
-        // eslint-disable-next-line no-unused-vars
-        let vm = new window.Vue({
-            el: '#container',
-            template: `<comp></comp>`
-        });
+        }).$mount(app);
     });
 
 
@@ -41,36 +46,36 @@ describe('vue drivers', () => {
             return done(new Error('Can not find document.body'));
         }
 
-        let app = document.createElement('div');
-        document.body.appendChild(app);
-        app.setAttribute('id', 'container');
+        const app = document.createElement('div');
+        const vueComponent = testComponent.driver('vue');
 
-        window.Vue.component('comp', {
-            template: `<vue-component :foo = "foo" :run = "this.run"></vue-component>`,
-            data: () => {
+        if (!document.body) {
+            throw new Error(`Expected document.body to be present`);
+        }
+        document.body.appendChild(app);
+
+        new window.Vue({
+            render(createElement) : Element {
+                return createElement(vueComponent, {
+                    attrs: {
+                        foo: this.foo,
+                        run: this.run
+                    }
+                });
+            },
+            data:     () => {
                 return {
                     run: `window.xprops.foo('bar');`
                 };
             },
-            components: {
-                'vue-component': testComponent.driver('vue')
-            },
             computed: {
                 foo: () => {
-                    return function (bar) {
+                    return function foo(bar) : ZalgoPromise<void> {
                         assert.equal(bar, 'bar');
-                        this.close().then(done);
+                        return this.close().then(done);
                     };
                 }
             }
-        });
-
-        // eslint-disable-next-line no-unused-vars
-        let vm = new window.Vue({
-            el: '#container',
-            template: `<comp></comp>`
-        });
+        }).$mount(app);
     });
 });
-
-

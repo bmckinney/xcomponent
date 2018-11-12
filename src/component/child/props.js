@@ -2,24 +2,24 @@
 
 import { getDomain } from 'cross-domain-utils/src';
 
-import { type Component } from '../component';
-import { type BuiltInPropsType } from '../component/props';
+import type { Component } from '../component';
+import type { BuiltInPropsType, MixedPropDefinitionType } from '../component/props';
 
-export function normalizeChildProp<T : mixed, P>(component : Component<P>, props : (BuiltInPropsType & P), key : string, value : T) : T  {
+export function normalizeChildProp<T, P>(component : Component<P>, props : (BuiltInPropsType & P), key : string, value : T) : ?T  {
 
-    let prop = component.getProp(key);
+    // $FlowFixMe
+    let prop : MixedPropDefinitionType<P> = component.getProp(key);
 
     if (!prop) {
-
         if (component.looseProps) {
             return value;
+        } else {
+            return;
         }
-
-        throw new Error(`Unrecognized prop: ${ key }`);
     }
 
     if (typeof prop.childDecorate === 'function') {
-        value = prop.childDecorate(value);
+        return prop.childDecorate(value);
     }
 
     return value;
@@ -30,6 +30,7 @@ export function normalizeChildProps<P>(component : Component<P>, props : (BuiltI
 
     let result = {};
 
+    // $FlowFixMe
     for (let key of Object.keys(props)) {
 
         let prop = component.getProp(key);

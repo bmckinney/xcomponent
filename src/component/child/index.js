@@ -1,21 +1,22 @@
 /* @flow */
+/* eslint max-lines: 0 */
 
-import * as $logger from 'beaver-logger/client';
-import { isSameDomain, getOpener, getAllFramesInWindow, getDomain } from 'cross-domain-utils/src';
-import { send } from 'post-robot/src';
-
+import { isSameDomain, matchDomain, getDomain, type CrossDomainWindowType } from 'cross-domain-utils/src';
+import { send, markWindowKnown } from 'post-robot/src';
 import { ZalgoPromise } from 'zalgo-promise/src';
-import { BaseComponent } from '../base';
-import { getParentComponentWindow, getComponentMeta, getParentDomain, getParentRenderWindow, isXComponentWindow } from '../window';
-import { extend, deserializeFunctions, get, onDimensionsChange, trackDimensions, dimensionsMatchViewport, stringify,
-         cycle, globalFor, setLogLevel, getElement, documentReady, noop, stringifyError } from '../../lib';
-import { POST_MESSAGE, CONTEXT_TYPES, CLOSE_REASONS, INITIAL_PROPS } from '../../constants';
-import { normalizeChildProps } from './props';
-import { matchDomain } from 'cross-domain-utils/src';
-import { RenderError } from '../../error';
+import { extend, get, onDimensionsChange, trackDimensions, dimensionsMatchViewport, stringify,
+    cycle, getElement, noop, stringifyError, waitForDocumentReady } from 'belter/src';
 
-import { type Component } from '../component';
-import { type BuiltInPropsType } from '../component/props';
+import { BaseComponent } from '../base';
+import { getParentComponentWindow, getComponentMeta, getParentDomain, getParentRenderWindow } from '../window';
+import { deserializeFunctions, globalFor } from '../../lib';
+import { POST_MESSAGE, CONTEXT_TYPES, CLOSE_REASONS, INITIAL_PROPS } from '../../constants';
+import { RenderError } from '../../error';
+import type { Component } from '../component';
+import type { BuiltInPropsType } from '../component/props';
+import type { DimensionsType } from '../../types';
+
+import { normalizeChildProps } from './props';
 
 export type ChildExportsType<P> = {
     updateProps : (props : (BuiltInPropsType & P)) => ZalgoPromise<void>,
@@ -52,8 +53,6 @@ export class ChildComponent<P> extends BaseComponent<P> {
             return;
         }
 
-        this.sendLogsToOpener();
-
         this.component.log(`construct_child`);
 
         // The child can specify some default props if none are passed from the parent. This often makes integrations
@@ -62,12 +61,24 @@ export class ChildComponent<P> extends BaseComponent<P> {
 
         this.onPropHandlers = [];
 
-        this.setProps(this.getInitialProps(), getParentDomain());
-
-        // update logLevel with prop.logLevel to override defaultLogLevel configured when creating component
-
-        if (this.props.logLevel) {
-            setLogLevel(this.props.logLevel);
+        for (let item of [ this.component, window ]) {
+            for (let [ name, getter ] of [ [ 'xchild', () => this ], [ 'xprops', () => this.props ] ]) {
+                // $FlowFixMe
+                Object.defineProperty(item, name, {
+                    configurable: true,
+                    get:          () => {
+                        if (!this.props) {
+                            this.setProps(this.getInitialProps(), getParentDomain());
+                        }
+                        // $FlowFixMe
+                        delete item[name];
+                        // $FlowFixMe
+                        item[name] = getter();
+                        // $FlowFixMe
+                        return item[name];
+                    }
+                });
+            }
         }
 
         this.component.log(`init_child`);
@@ -82,6 +93,9 @@ export class ChildComponent<P> extends BaseComponent<P> {
         //
         // - What context are we
         // - What props has the parent specified
+
+        markWindowKnown(this.getParentComponentWindow());
+        markWindowKnown(this.getParentRenderWindow());
 
         this.onInit = this.sendToParent(POST_MESSAGE.INIT, {
 
@@ -104,9 +118,12 @@ export class ChildComponent<P> extends BaseComponent<P> {
     }
 
     listenForResize() {
-        window.addEventListener('resize', () => {
+        if (this.component.listenForResize) {
             this.sendToParent(POST_MESSAGE.ONRESIZE, {}, { fireAndForget: true });
-        });
+            window.addEventListener('resize', () => {
+                this.sendToParent(POST_MESSAGE.ONRESIZE, {}, { fireAndForget: true });
+            });
+        }
     }
 
     hasValidParentDomain() : boolean {
@@ -150,7 +167,7 @@ export class ChildComponent<P> extends BaseComponent<P> {
                     throw new Error(`Can not get props from file:// domain`);
                 }
 
-                throw new Error(`Parent component window is on a different domain - expected ${getDomain()} - can not retrieve props`);
+                throw new Error(`Parent component window is on a different domain - expected ${ getDomain() } - can not retrieve props`);
             }
 
             let global = globalFor(parentComponentWindow);
@@ -159,22 +176,22 @@ export class ChildComponent<P> extends BaseComponent<P> {
                 throw new Error(`Can not find global for parent component - can not retrieve props`);
             }
 
-            props = global.props[componentMeta.uid];
+            props = JSON.parse(global.props[componentMeta.uid]);
 
         } else {
-            throw new Error(`Unrecognized props type: ${props.type}`);
+            throw new Error(`Unrecognized props type: ${ props.type }`);
         }
 
         if (!props) {
             throw new Error(`Initial props not found`);
         }
-
+        
         return deserializeFunctions(props, ({ fullKey, self, args }) => {
             return this.onInit.then(() => {
                 let func = get(this.props, fullKey);
 
                 if (typeof func !== 'function') {
-                    throw new Error(`Expected ${ typeof func } to be function`);
+                    throw new TypeError(`Expected ${ fullKey } to be function, got ${ typeof func }`);
                 }
 
                 return func.apply(self, args);
@@ -188,7 +205,6 @@ export class ChildComponent<P> extends BaseComponent<P> {
         this.props = this.props || {};
         let normalizedProps = normalizeChildProps(this.component, props, origin, required);
         extend(this.props, normalizedProps);
-        window.xprops = this.props;
         for (let handler of this.onPropHandlers) {
             handler.call(this, this.props);
         }
@@ -208,7 +224,7 @@ export class ChildComponent<P> extends BaseComponent<P> {
             throw new Error(`Can not find parent component window to message`);
         }
 
-        this.component.log(`send_to_parent_${name}`);
+        this.component.log(`send_to_parent_${ name }`);
 
         return send(parentWindow, name, data, { domain: getParentDomain(), ...options });
     }
@@ -226,11 +242,11 @@ export class ChildComponent<P> extends BaseComponent<P> {
 
         // Ensure we do not try to .attach() multiple times for the same component on the same page
 
-        if (window.__activeXComponent__) {
+        if (window.__activeZoidComponent__) {
             throw this.component.createError(`Can not attach multiple components to the same window`);
         }
 
-        window.__activeXComponent__ = this;
+        window.__activeZoidComponent__ = this;
 
         // Get the direct parent window
 
@@ -241,7 +257,7 @@ export class ChildComponent<P> extends BaseComponent<P> {
         let componentMeta = getComponentMeta();
 
         if (componentMeta.tag !== this.component.tag) {
-            throw this.component.createError(`Parent is ${componentMeta.tag} - can not attach ${this.component.tag}`);
+            throw this.component.createError(`Parent is ${ componentMeta.tag } - can not attach ${ this.component.tag }`);
         }
 
         // Note -- getting references to other windows is probably one of the hardest things to do. There's basically
@@ -259,60 +275,6 @@ export class ChildComponent<P> extends BaseComponent<P> {
         // if there's no parent to message to.
 
         this.watchForClose();
-    }
-
-
-    sendLogsToOpener() {
-        if (__SEND_POPUP_LOGS_TO_OPENER__) {
-            try {
-                let opener = getOpener(window);
-
-                if (!opener || !window.console) {
-                    return;
-                }
-
-                // $FlowFixMe
-                for (let frame of getAllFramesInWindow(opener)) {
-
-                    if (!isSameDomain(frame) || !frame.console || frame === window) {
-                        continue;
-                    }
-
-                    for (let level of [ 'log', 'debug', 'info', 'warn', 'error' ]) {
-                        let original = window.console[level];
-
-                        if (!original) {
-                            continue;
-                        }
-
-                        try {
-
-                            window.console[level] = function() : void {
-
-                                try {
-                                    if (frame) {
-                                        // $FlowFixMe
-                                        return frame.console[level].apply(frame.console, arguments);
-                                    }
-                                } catch (err3) {
-                                    // pass
-                                }
-
-                                return original.apply(this, arguments);
-                            };
-
-                        } catch (err2) {
-                            // pass
-                        }
-                    }
-
-                    return;
-                }
-
-            } catch (err) {
-                // pass
-            }
-        }
     }
 
     watchForClose() {
@@ -372,8 +334,7 @@ export class ChildComponent<P> extends BaseComponent<P> {
         this.watchingForResize = true;
 
         return ZalgoPromise.try(() => {
-
-            return documentReady;
+            return waitForDocumentReady();
 
         }).then(() => {
 
@@ -386,14 +347,13 @@ export class ChildComponent<P> extends BaseComponent<P> {
         }).then(() => {
 
             return cycle(() => {
-                return onDimensionsChange(element, { width, height }).then(dimensions => {
+                return onDimensionsChange(element, { width, height }).then(() => {
                     // $FlowFixMe
                     return this.resizeToElement(element, { width, height });
                 });
             });
         });
     }
-
 
     exports() : ChildExportsType<P> {
 
@@ -506,8 +466,8 @@ export class ChildComponent<P> extends BaseComponent<P> {
     }
 
 
-    destroy() {
-        $logger.flush().then(() => {
+    destroy() : ZalgoPromise<void> {
+        return ZalgoPromise.try(() => {
             window.close();
         });
     }
@@ -541,50 +501,5 @@ export class ChildComponent<P> extends BaseComponent<P> {
         return this.sendToParent(POST_MESSAGE.ERROR, {
             error: stringifiedError
         }).then(noop);
-    }
-}
-
-if (__CHILD_WINDOW_ENFORCE_LOG_LEVEL__) {
-
-    if (isXComponentWindow() && window.console) {
-        let logLevels = $logger.logLevels;
-
-        for (let level of logLevels) {
-
-            try {
-
-                let original = window.console[level];
-
-                if (!original || !original.apply) {
-                    continue;
-                }
-
-                window.console[level] = function() : void {
-                    try {
-                        let logLevel = window.LOG_LEVEL;
-
-                        if (!logLevel || logLevels.indexOf(logLevel) === -1) {
-                            return original.apply(this, arguments);
-                        }
-
-                        if (logLevels.indexOf(level) > logLevels.indexOf(logLevel)) {
-                            return;
-                        }
-
-                        return original.apply(this, arguments);
-
-                    } catch (err2) {
-                        // pass
-                    }
-                };
-
-                if (level === 'info') {
-                    window.console.log = window.console[level];
-                }
-
-            } catch (err) {
-                // pass
-            }
-        }
     }
 }

@@ -1,15 +1,20 @@
+/* @flow */
+
+import { assert } from 'chai';
+
 import { angular2 } from './../../src/drivers/angular2';
+
 const sinon = window.sinon;
 
-let initializedXcomponent = {
-    render: sinon.spy(),
+let initializedZoid = {
+    render:      sinon.spy(),
     updateProps: sinon.spy()
 };
 
-let unInitializedXcomponent = {
-    log: () => {},
-    tag: 'my-log-in',
-    init: sinon.spy(() => initializedXcomponent)
+let unInitializedZoid = {
+    log:  () => { /* pass */ },
+    tag:  'my-log-in',
+    init: sinon.spy(() => initializedZoid)
 };
 
 const componentClassSpy = sinon.spy(() => 'ng-component value');
@@ -17,7 +22,7 @@ const componentClassSpy = sinon.spy(() => 'ng-component value');
 const moduleClassSpy = sinon.spy(() => 'ng-module value');
 
 let NgCore = {
-    Component : () => {
+    Component: () => {
         return { Class: componentClassSpy };
     },
     NgModule:  () => {
@@ -31,21 +36,22 @@ let NgCore = {
     }
 };
 
-const registerDriver = () => angular2.register(unInitializedXcomponent, NgCore);
+// $FlowFixMe
+const registerDriver = () => angular2.register(unInitializedZoid, NgCore);
 
 describe('angular 2 driver', () => {
 
     let ngModule;
 
     beforeEach(() => {
-        sinon.spy(unInitializedXcomponent, 'log');
+        sinon.spy(unInitializedZoid, 'log');
         sinon.spy(NgCore, 'Component');
         sinon.spy(NgCore, 'NgModule');
         ngModule = registerDriver();
     });
 
     afterEach(() => {
-        unInitializedXcomponent.log.restore();
+        unInitializedZoid.log.restore();
         NgCore.Component.restore();
         NgCore.NgModule.restore();
         ngModule = undefined;
@@ -56,11 +62,11 @@ describe('angular 2 driver', () => {
     });
 
     it('should log out initialization message', () => {
-        sinon.assert.calledWith(unInitializedXcomponent.log, 'initializing angular2 component');
+        sinon.assert.calledWith(unInitializedZoid.log, 'initializing angular2 component');
     });
 
-    it('should create component with xcomponent tag', () => {
-        sinon.assert.calledWithMatch(NgCore.Component, { selector: unInitializedXcomponent.tag });
+    it('should create component with zoid tag', () => {
+        sinon.assert.calledWithMatch(NgCore.Component, { selector: unInitializedZoid.tag });
     });
 
     it('should create component with empty div template', () => {
@@ -68,15 +74,15 @@ describe('angular 2 driver', () => {
     });
 
     it('should create component with props input', () => {
-        sinon.assert.calledWithMatch(NgCore.Component, { inputs: ['props'] });
+        sinon.assert.calledWithMatch(NgCore.Component, { inputs: [ 'props' ] });
     });
 
     it('should create module that declares the component', () => {
-        sinon.assert.calledWithMatch(NgCore.NgModule, { declarations: ['ng-component value'] });
+        sinon.assert.calledWithMatch(NgCore.NgModule, { declarations: [ 'ng-component value' ] });
     });
 
     it('should create module that exports the component', () => {
-        sinon.assert.calledWithMatch(NgCore.NgModule, { exports: ['ng-component value'] });
+        sinon.assert.calledWithMatch(NgCore.NgModule, { exports: [ 'ng-component value' ] });
     });
 
     it('should return the module', () => {
@@ -93,16 +99,19 @@ describe('angular 2 driver', () => {
         });
         describe('constructor', () => {
             it('receives elementRef as a DI token', () => {
+                // $FlowFixMe
                 assert.isTrue(componentClass.constructor[0] === NgCore.ElementRef);
             });
 
             it('receives ngZone as a DI token', () => {
+                // $FlowFixMe
                 assert.isTrue(componentClass.constructor[1] === NgCore.NgZone);
 
             });
 
             it('holds a reference to DOM element ', () => {
                 const component = {};
+                // $FlowFixMe
                 componentClass.constructor[componentClass.constructor.length - 1]
                     .bind(component)('elementRef');
                 assert.isTrue(component.elementRef === 'elementRef');
@@ -111,6 +120,7 @@ describe('angular 2 driver', () => {
 
             it('holds a reference to ngZone ', () => {
                 const component = {};
+                // $FlowFixMe
                 (componentClass.constructor[componentClass.constructor.length - 1])
                     .bind(component)(null, 'ngZone');
                 assert.isTrue(component.zone === 'ngZone');
@@ -126,8 +136,10 @@ describe('angular 2 driver', () => {
                         prefilledEmail: 'a@b.com'
                     }
                 };
+                // $FlowFixMe
                 componentClass.constructor[componentClass.constructor.length - 1]
                     .bind(component)(NgCore.ElementRef, NgCore.NgZone);
+                // $FlowFixMe
                 componentClass.ngOnInit
                     .bind(component)();
             });
@@ -136,16 +148,18 @@ describe('angular 2 driver', () => {
                 component = undefined;
             });
 
-            it('initilize xcomponent using provided props', () => {
-                sinon.assert.calledWith(unInitializedXcomponent.init, component.props, null, 'nativeElement value');
+            it('initilize zoid using provided props', () => {
+                // $FlowFixMe
+                sinon.assert.calledWith(unInitializedZoid.init, component.props, null, 'nativeElement value');
             });
 
-            it('render xcomponent into target element', () => {
-                sinon.assert.calledWith(initializedXcomponent.render, 'nativeElement value');
+            it('render zoid into target element', () => {
+                sinon.assert.calledWith(initializedZoid.render, 'nativeElement value');
             });
 
-            it('saves a reference to parent xcomponent', () => {
-                assert.isTrue(component.parent === initializedXcomponent);
+            it('saves a reference to parent zoid', () => {
+                // $FlowFixMe
+                assert.isTrue(component.parent === initializedZoid);
             });
 
         });
@@ -158,8 +172,10 @@ describe('angular 2 driver', () => {
                         prefilledEmail: 'a@b.com'
                     }
                 };
+                // $FlowFixMe
                 componentClass.constructor[componentClass.constructor.length - 1]
                     .bind(component)(NgCore.ElementRef, NgCore.NgZone);
+                // $FlowFixMe
                 componentClass.ngOnInit
                     .bind(component)();
             });
@@ -168,29 +184,35 @@ describe('angular 2 driver', () => {
                 component = undefined;
             });
 
-            it('updates props in xcomponent', () => {
+            it('updates props in zoid', () => {
+                // $FlowFixMe
                 component.props.prefilledEmail = 'b@b.com';
+                // $FlowFixMe
                 componentClass.ngOnChanges
                     .bind(component)();
-                sinon.assert.calledWithMatch(initializedXcomponent.updateProps, { prefilledEmail : 'b@b.com' });
+                sinon.assert.calledWithMatch(initializedZoid.updateProps, { prefilledEmail: 'b@b.com' });
             });
         });
 
-        it('passed functions trigger change detection when called from xcomponent', () => {
+        it('passed functions trigger change detection when called from zoid', () => {
             let component;
             component =  {
                 props: {
                     onLogin: (email) => {
+                        // $FlowFixMe
                         component.email = email;
                     }
                 }
             };
+            // $FlowFixMe
             componentClass.constructor[componentClass.constructor.length - 1]
                 .bind(component)(NgCore.ElementRef, NgCore.NgZone);
+            // $FlowFixMe
             componentClass.ngOnInit
                 .bind(component)();
-            const propsPassedToXcomponent = unInitializedXcomponent.init.lastCall.args[0];
-            propsPassedToXcomponent.onLogin('c@b.com');
+            const propsPassedToZoid = unInitializedZoid.init.lastCall.args[0];
+            propsPassedToZoid.onLogin('c@b.com');
+            // $FlowFixMe
             assert.isTrue(component.email === 'c@b.com');
             sinon.assert.calledOnce(NgCore.NgZone.run);
         });

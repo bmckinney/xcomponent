@@ -3,13 +3,12 @@
 import { ZalgoPromise } from 'zalgo-promise/src';
 import { cleanUpWindow } from 'post-robot/src';
 import { findFrameByName, isSameDomain } from 'cross-domain-utils/src';
-
 import { iframe, popup, toCSS, showElement, hideElement,
-         destroyElement, normalizeDimension, watchElementForClose,
-         awaitFrameWindow, addClass, removeClass } from '../../lib';
+    destroyElement, normalizeDimension, watchElementForClose,
+    awaitFrameWindow, addClass, removeClass, noop } from 'belter/src';
+
 import { CONTEXT_TYPES, DELEGATE, CLOSE_REASONS, CLASS_NAMES, DEFAULT_DIMENSIONS } from '../../constants';
 import { getPosition, getParentComponentWindow } from '../window';
-import { PopupOpenError } from '../../error';
 
 
 export type ContextDriverType = {
@@ -18,7 +17,6 @@ export type ContextDriverType = {
     renderedIntoContainerTemplate : boolean,
     allowResize : boolean,
     openOnClick : boolean,
-    openOnFocus : boolean,
     needsBridge : boolean,
 
     open : (?string) => ZalgoPromise<void>,
@@ -53,17 +51,16 @@ export type ContextDriverType = {
 
 export let RENDER_DRIVERS : { [string] : ContextDriverType } = {};
 
-    // Iframe context is rendered inline on the page, without any kind of parent template. It's the one context that is designed
-    // to feel like a native element on the page.
+// Iframe context is rendered inline on the page, without any kind of parent template. It's the one context that is designed
+// to feel like a native element on the page.
 
 RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
 
-    focusable: false,
+    focusable:                     false,
     renderedIntoContainerTemplate: true,
-    allowResize: true,
-    openOnClick: false,
-    openOnFocus: false,
-    needsBridge: false,
+    allowResize:                   true,
+    openOnClick:                   false,
+    needsBridge:                   false,
 
     open(url : ?string) : ZalgoPromise<void> {
 
@@ -72,7 +69,8 @@ RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
         this.iframe = iframe({
             url,
             attributes: {
-                name: this.childWindowName,
+                name:      this.childWindowName,
+                title:     this.component.name,
                 scrolling: this.component.scrolling ? 'yes' : 'no',
                 ...attributes
             },
@@ -87,7 +85,7 @@ RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
             this.window = frameWindow;
 
             let detectClose = () => {
-                ZalgoPromise.try(() => {
+                return ZalgoPromise.try(() => {
                     return this.props.onClose(CLOSE_REASONS.CLOSE_DETECTED);
                 }).finally(() => {
                     return this.destroy();
@@ -120,7 +118,7 @@ RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
 
         this.prerenderIframe = iframe({
             attributes: {
-                name: `__prerender__${ this.childWindowName }`,
+                name:      `__prerender__${ this.childWindowName }`,
                 scrolling: this.component.scrolling ? 'yes' : 'no',
                 ...attributes
             },
@@ -184,7 +182,7 @@ RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
         getOutlet:               DELEGATE.CALL_ORIGINAL,
 
         open(original : () => ZalgoPromise<void>, override : () => ZalgoPromise<void>) : () => ZalgoPromise<void> {
-            return function() : ZalgoPromise<void> {
+            return function overrideOpen() : ZalgoPromise<void> {
                 return override.apply(this, arguments).then(() => {
                     this.clean.set('window', findFrameByName(getParentComponentWindow(), this.childWindowName));
 
@@ -222,18 +220,17 @@ RENDER_DRIVERS[CONTEXT_TYPES.IFRAME] = {
     }
 };
 
-if (__POPUP_SUPPORT__) {
+if (__ZOID__.__POPUP_SUPPORT__) {
 
     // Popup context opens up a centered popup window on the page.
 
     RENDER_DRIVERS[CONTEXT_TYPES.POPUP] = {
 
-        focusable: true,
+        focusable:                     true,
         renderedIntoContainerTemplate: false,
-        allowResize: false,
-        openOnClick: true,
-        openOnFocus: true,
-        needsBridge: true,
+        allowResize:                   false,
+        openOnClick:                   true,
+        needsBridge:                   true,
 
         open(url : ?string = '') : ZalgoPromise<void> {
             return ZalgoPromise.try(() => {
@@ -250,28 +247,19 @@ if (__POPUP_SUPPORT__) {
 
                 let attributes = this.component.attributes.popup || {};
 
-                try {
-                    this.window = popup(url || '', {
-                        name: this.childWindowName,
-                        width,
-                        height,
-                        top: y,
-                        left: x,
-                        status: 1,
-                        toolbar: 0,
-                        menubar: 0,
-                        resizable: 1,
-                        scrollbars: 1,
-                        ...attributes
-                    });
-                } catch (err) {
-
-                    if (err instanceof PopupOpenError) {
-                        this.component.logError(`popup_open_error`);
-                    }
-
-                    throw err;
-                }
+                this.window = popup(url || '', {
+                    name:       this.childWindowName,
+                    width,
+                    height,
+                    top:        y,
+                    left:       x,
+                    status:     1,
+                    toolbar:    0,
+                    menubar:    0,
+                    resizable:  1,
+                    scrollbars: 1,
+                    ...attributes
+                });
 
                 this.prerenderWindow = this.window;
 
@@ -289,13 +277,11 @@ if (__POPUP_SUPPORT__) {
         },
 
         openPrerender() : ZalgoPromise<void> {
-            return ZalgoPromise.try(() => {
-
-            });
+            return ZalgoPromise.try(noop);
         },
 
-        resize(width : number | string, height : number | string) {
-
+        resize() {
+            // pass
         },
 
         hide() {

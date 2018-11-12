@@ -1,6 +1,6 @@
 /* @flow */
 
-import { type Component, type ComponentDriverType } from '../component/component';
+import type { Component, ComponentDriverType } from '../component/component';
 
 declare class GlimmerComponentType {
     element : HTMLElement,
@@ -10,7 +10,7 @@ declare class GlimmerComponentType {
 export let glimmer : ComponentDriverType<*, (typeof GlimmerComponentType)> = {
 
     global() {
-
+        // pass
     },
 
     register(component : Component<*>, GlimmerComponent : (typeof GlimmerComponentType)) : (typeof GlimmerComponentType) {

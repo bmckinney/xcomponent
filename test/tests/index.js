@@ -1,16 +1,14 @@
+/* @flow */
 
-
-export * from './happy';
-export * from './actions';
-export * from './drivers';
-export * from './error';
-export * from './templates';
-export * from './hijack';
-export * from './options';
-export * from './parent';
-export * from './validation';
-export * from './logging';
-export * from './parentDomainCheck';
-export * from './angular2';
-export * from './vue';
+import './happy';
+import './actions';
+import './drivers';
+import './error';
+import './templates';
+import './options';
+import './parent';
+import './validation';
+import './parentDomainCheck';
+import './angular2';
+import './vue';
 

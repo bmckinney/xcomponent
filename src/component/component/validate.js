@@ -1,9 +1,10 @@
 /* @flow */
 
-import { PROP_TYPES_LIST, CONTEXT_TYPES_LIST } from '../../constants';
-import { isPerc, isPx } from '../../lib';
+import { isPerc, isPx } from 'belter/src';
 
-import { type ComponentOptionsType } from './index';
+import { PROP_TYPES_LIST, CONTEXT_TYPES_LIST } from '../../constants';
+
+import type { ComponentOptionsType } from './index';
 
 function validatePropDefinitions<P>(options : ComponentOptionsType<P>) {
 
@@ -18,7 +19,7 @@ function validatePropDefinitions<P>(options : ComponentOptionsType<P>) {
             let prop = options.props[key];
 
             if (!prop || !(typeof prop === 'object')) {
-                throw new Error(`Expected options.props.${key} to be an object`);
+                throw new Error(`Expected options.props.${ key } to be an object`);
             }
 
             if (!prop.type) {
@@ -26,7 +27,7 @@ function validatePropDefinitions<P>(options : ComponentOptionsType<P>) {
             }
 
             if (PROP_TYPES_LIST.indexOf(prop.type) === -1) {
-                throw new Error(`Expected prop.type to be one of ${PROP_TYPES_LIST.join(', ')}`);
+                throw new Error(`Expected prop.type to be one of ${ PROP_TYPES_LIST.join(', ') }`);
             }
 
             if (prop.required && prop.def) {
@@ -36,14 +37,15 @@ function validatePropDefinitions<P>(options : ComponentOptionsType<P>) {
     }
 }
 
+// eslint-disable-next-line complexity
 export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-ignore-line
 
     if (!options) {
-        throw new Error(`Expecred options to be passed`);
+        throw new Error(`Expected options to be passed`);
     }
 
     if (!options.tag || !options.tag.match(/^[a-z0-9-]+$/)) {
-        throw new Error(`Invalid options.tag: ${options.tag}`);
+        throw new Error(`Invalid options.tag: ${ options.tag }`);
     }
 
     validatePropDefinitions(options);
@@ -60,8 +62,8 @@ export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-igno
 
     if (options.contexts) {
 
-        if (options.contexts.popup && !__POPUP_SUPPORT__) {
-            throw new Error(`Popups not supported in this build -- please use the full xcomponent.js build`);
+        if (options.contexts.popup && !__ZOID__.__POPUP_SUPPORT__) {
+            throw new Error(`Popups not supported in this build -- please use the full zoid.js build`);
         }
 
         let anyEnabled = false;
@@ -69,7 +71,7 @@ export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-igno
         for (let context of Object.keys(options.contexts)) {
 
             if (CONTEXT_TYPES_LIST.indexOf(context) === -1) {
-                throw new Error(`Unsupported context type: ${context}`);
+                throw new Error(`Unsupported context type: ${ context }`);
             }
 
             if ((options.contexts && options.contexts[context]) || (options.contexts && options.contexts[context] === undefined)) {
@@ -84,25 +86,21 @@ export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-igno
 
     if (options.defaultContext) {
         if (CONTEXT_TYPES_LIST.indexOf(options.defaultContext) === -1) {
-            throw new Error(`Unsupported context type: ${options.defaultContext || 'unknown'}`);
+            throw new Error(`Unsupported context type: ${ options.defaultContext || 'unknown' }`);
         }
 
         if (options.contexts && options.defaultContext && !options.contexts[options.defaultContext]) {
-            throw new Error(`Disallowed default context type: ${options.defaultContext || 'unknown'}`);
+            throw new Error(`Disallowed default context type: ${ options.defaultContext || 'unknown' }`);
         }
     }
 
-    if (!options.url && !options.buildUrl) {
-        throw new Error(`Expected options.url to be passed`);
-    }
-
     if (options.url && options.buildUrl) {
-        throw new Error(`Can not pass options.url and options.buildUrl`);
+        throw new Error(`Can not pass both options.url and options.buildUrl`);
     }
 
     if (options.defaultEnv) {
         if (typeof options.defaultEnv !== 'string') {
-            throw new Error(`Expected options.defaultEnv to be a string`);
+            throw new TypeError(`Expected options.defaultEnv to be a string`);
         }
 
         if (!options.buildUrl && typeof options.url !== 'object') {
@@ -110,7 +108,7 @@ export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-igno
         }
 
         if (options.url && typeof options.url === 'object' && !options.url[options.defaultEnv]) {
-            throw new Error(`No url found for default env: ${options.defaultEnv}`);
+            throw new Error(`No url found for default env: ${ options.defaultEnv }`);
         }
     }
 
@@ -122,7 +120,7 @@ export function validate<P>(options : ?ComponentOptionsType<P>) { // eslint-igno
 
         for (let env of Object.keys(options.url)) {
             if (!options.url[env]) {
-                throw new Error(`No url specified for env: ${env}`);
+                throw new Error(`No url specified for env: ${ env }`);
             }
         }
     }

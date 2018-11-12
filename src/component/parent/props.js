@@ -1,122 +1,13 @@
 /* @flow */
 
 import { ZalgoPromise } from 'zalgo-promise/src';
+import { dotify, isDefined } from 'belter/src';
 
-import { noop, denodeify, once, memoize, promisify, dotify } from '../../lib';
+import type { Component } from '../component';
+import type { BuiltInPropsDefinitionType, PropsType, BuiltInPropsType, MixedPropDefinitionType } from '../component/props';
+import { PROP_SERIALIZATION } from '../../constants';
 
-import { type Component } from '../component';
-import { type BuiltInPropsDefinitionType, type PropsType, type BuiltInPropsType, type PropTypeEnum, type PropDefinitionType, type PropDefinitionTypeEnum } from '../component/props';
-
-import { type ParentComponent } from './index';
-
-function isDefined(value : ?mixed) : boolean {
-    return value !== null && value !== undefined && value !== '';
-}
-
-
-/*  Normalize Prop
-    --------------
-
-    Turn prop into normalized value, using defaults, function options, etc.
-*/
-
-export function normalizeProp<P, T : PropTypeEnum>(component : Component<P>, instance : ParentComponent<P>, props : (PropsType & P), key : string, value : ?T) : ?(ZalgoPromise<T> | T) {
-
-    let prop = component.getProp(key);
-
-    let resultValue;
-
-    if (prop.value) {
-        resultValue = prop.value;
-    } else if (prop.def && (!props.hasOwnProperty(key) || !isDefined(value))) {
-        resultValue = prop.def.call(component, props);
-    } else {
-        resultValue = value;
-    }
-
-    if (!resultValue && prop.alias && props[prop.alias]) {
-        resultValue = props[prop.alias];
-    }
-
-    let decorated = false;
-
-    if (prop.decorate && resultValue !== null && resultValue !== undefined) {
-        resultValue = prop.decorate(resultValue, props);
-        decorated = true;
-    }
-
-    if (prop.type === 'boolean') {
-        // $FlowFixMe
-        resultValue = Boolean(resultValue);
-
-    } else if (prop.type === 'function') {
-
-        if (!resultValue && prop.noop) {
-            // $FlowFixMe
-            resultValue = noop;
-
-            if (!decorated && prop.decorate) {
-                resultValue = prop.decorate(resultValue, props);
-            }
-        }
-
-        if (resultValue && typeof resultValue === 'function') {
-
-            resultValue = resultValue.bind(instance);
-
-            // If prop.denodeify is set, denodeify the function (accepts callback -> returns promise)
-
-            if (prop.denodeify) {
-                // $FlowFixMe
-                resultValue = denodeify(resultValue);
-            }
-
-            if (prop.promisify) {
-                // $FlowFixMe
-                resultValue = promisify(resultValue);
-            }
-
-            // Wrap the function in order to log when it is called
-
-            let original = resultValue;
-            // $FlowFixMe
-            resultValue = function() : mixed {
-                component.log(`call_prop_${key}`);
-                return original.apply(this, arguments);
-            };
-
-            // If prop.once is set, ensure the function can only be called once
-
-            if (prop.once) {
-                // $FlowFixMe
-                resultValue = once(resultValue);
-            }
-
-            // If prop.memoize is set, ensure the function is memoized (first return resultValue is cached and returned for any future calls)
-
-            if (prop.memoize) {
-                // $FlowFixMe
-                resultValue = memoize(resultValue);
-            }
-        }
-
-    } else if (prop.type === 'string') {
-        // pass
-
-    } else if (prop.type === 'object') {
-        // pass
-
-    } else if (prop.type === 'number') {
-        if (resultValue !== undefined) {
-            // $FlowFixMe
-            resultValue = parseInt(resultValue, 10);
-        }
-    }
-
-    // $FlowFixMe
-    return resultValue;
-}
-
+import type { ParentComponent } from './index';
 
 /*  Normalize Props
     ---------------
@@ -124,44 +15,82 @@ export function normalizeProp<P, T : PropTypeEnum>(component : Component<P>, ins
     Turn props into normalized values, using defaults, function options, etc.
 */
 
-export function normalizeProps<P>(component : Component<P>, instance : ParentComponent<P>, props : (PropsType & P), required : boolean = true) : (BuiltInPropsType & P) {
+export function normalizeProps<P>(component : Component<P>, instance : ParentComponent<P>, props : (PropsType & P), isUpdate : boolean = false) : (BuiltInPropsType & P) { // eslint-disable-line complexity
 
     let result = {};
-
-    // $FlowFixMe
     props = props || {};
 
-    result.version = component.version;
+    let propNames = isUpdate ? [] : component.getPropNames();
 
+    // $FlowFixMe
     for (let key of Object.keys(props)) {
-        if (component.getPropNames().indexOf(key) !== -1) {
-            // $FlowFixMe
-            result[key] = normalizeProp(component, instance, props, key, props[key]);
-        } else {
-            result[key] = props[key];
+        if (propNames.indexOf(key) === -1) {
+            propNames.push(key);
         }
     }
 
-    for (let key of component.getPropNames()) {
-        if (!props.hasOwnProperty(key) && (!instance.props || !instance.props.hasOwnProperty(key))) {
+    for (let key of propNames) {
+        let propDef = component.getProp(key);
+        let value = props[key];
 
-            // $FlowFixMe
-            let normalizedProp = normalizeProp(component, instance, props, key, props[key]);
-
-            if (normalizedProp !== undefined) {
-                result[key] = normalizedProp;
+        if (!propDef) {
+            if (component.looseProps) {
+                result[key] = value;
+                continue;
+            } else {
+                throw new Error(`Unrecognized prop: ${ key }`);
             }
+        }
+
+        if (!isDefined(value) && propDef.alias) {
+            value = props[propDef.alias];
+        }
+
+        if (propDef.value) {
+            value = propDef.value();
+        }
+
+        if (!isDefined(value) && propDef.def) {
+            value = propDef.def(props, component);
+        }
+
+        if (isDefined(value)) {
+            if (propDef.type === 'array' ? !Array.isArray(value) : (typeof value !== propDef.type)) {
+                throw new TypeError(`Prop is not of type ${ propDef.type }: ${ key }`);
+            }
+        } else if (propDef.required !== false) {
+            throw new Error(`Expected prop ${ key } to be passed`);
+        }
+
+        result[key] = value;
+    }
+
+    for (let key of Object.keys(result)) {
+        let propDef = component.getProp(key);
+        let value = result[key];
+
+        if (!propDef) {
+            continue;
+        }
+
+        if (propDef.validate) {
+            // $FlowFixMe
+            propDef.validate(value, result);
+        }
+
+        if (propDef.decorate) {
+            // $FlowFixMe
+            result[key] = propDef.decorate(value, result);
+        }
+
+        if (result[key] && propDef.type === 'function') {
+            result[key] = result[key].bind(instance);
         }
     }
 
     // $FlowFixMe
     return result;
 }
-
-
-
-
-
 
 
 /*  Props to Query
@@ -175,7 +104,8 @@ export function normalizeProps<P>(component : Component<P>, instance : ParentCom
     number -> string
 */
 
-function getQueryParam<T : PropTypeEnum, P, S : PropDefinitionTypeEnum>(prop : PropDefinitionType<T, P, S>, key : string, value : T) : ZalgoPromise<string> {
+// $FlowFixMe
+function getQueryParam<T, P>(prop : MixedPropDefinitionType<P>, key : string, value : T) : ZalgoPromise<string> {
     return ZalgoPromise.try(() => {
         if (typeof prop.queryParam === 'function') {
             return prop.queryParam(value);
@@ -187,7 +117,8 @@ function getQueryParam<T : PropTypeEnum, P, S : PropDefinitionTypeEnum>(prop : P
     });
 }
 
-function getQueryValue<T : PropTypeEnum, P, S : PropDefinitionTypeEnum>(prop : PropDefinitionType<T, P, S>, key : string, value : T) : ZalgoPromise<mixed> {
+// $FlowFixMe
+function getQueryValue<T, P>(prop : MixedPropDefinitionType<P>, key : string, value : T) : ZalgoPromise<mixed> {
     return ZalgoPromise.try(() => {
         if (typeof prop.queryValue === 'function') {
             return prop.queryValue(value);
@@ -197,7 +128,7 @@ function getQueryValue<T : PropTypeEnum, P, S : PropDefinitionTypeEnum>(prop : P
     });
 }
 
-export function propsToQuery<P>(propsDef : BuiltInPropsDefinitionType<P>, props : (BuiltInPropsType & P)) : { [string] : string } {
+export function propsToQuery<P>(propsDef : BuiltInPropsDefinitionType<P>, props : (BuiltInPropsType & P)) : ZalgoPromise<{ [string] : string }> {
 
     let params = {};
 
@@ -206,7 +137,7 @@ export function propsToQuery<P>(propsDef : BuiltInPropsDefinitionType<P>, props 
         let prop = propsDef[key];
 
         if (!prop) {
-            return;
+            return; // eslint-disable-line array-callback-return
         }
 
         return ZalgoPromise.resolve().then(() => {
@@ -225,31 +156,35 @@ export function propsToQuery<P>(propsDef : BuiltInPropsDefinitionType<P>, props 
 
         }).then(value => {
 
-            if (!value) {
+            if (value === null || typeof value === 'undefined') {
                 return;
             }
 
-            ZalgoPromise.all([
+            return ZalgoPromise.all([
+                // $FlowFixMe
                 getQueryParam(prop, key, value),
+                // $FlowFixMe
                 getQueryValue(prop, key, value)
             ]).then(([ queryParam, queryValue ]) => {
 
                 let result;
 
                 if (typeof queryValue === 'boolean') {
-                    result = '1';
+                    result = queryValue.toString();
                 } else if (typeof queryValue === 'string') {
                     result = queryValue.toString();
                 } else if (typeof queryValue === 'function') {
                     return;
                 } else if (typeof queryValue === 'object' && queryValue !== null) {
 
-                    if (prop.serialization === 'json') {
+                    if (prop.serialization === PROP_SERIALIZATION.JSON) {
                         result = JSON.stringify(queryValue);
-                    } else {
+                    } else if (prop.serialization === PROP_SERIALIZATION.BASE64) {
+                        result = btoa(JSON.stringify(queryValue));
+                    } else if (prop.serialization === PROP_SERIALIZATION.DOTIFY || !prop.serialization) {
                         result = dotify(queryValue, key);
 
-                        for (let dotkey in result) {
+                        for (let dotkey of Object.keys(result)) {
                             params[dotkey] = result[dotkey];
                         }
 

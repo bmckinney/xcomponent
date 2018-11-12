@@ -1,33 +1,32 @@
 /* @flow */
 
-import { values } from './lib';
+export const ZOID = `zoid`;
 
-export const XCOMPONENT = `xcomponent`;
-
-export const __XCOMPONENT__ = `__${XCOMPONENT}__`;
+export const __ZOID__ = `__${ ZOID }__`;
 
 export const POST_MESSAGE = {
-    INIT: `${XCOMPONENT}_init`,
-    PROPS: `${XCOMPONENT}_props`,
-    PROP_CALLBACK: `${XCOMPONENT}_prop_callback`,
-    CLOSE: `${XCOMPONENT}_close`,
-    CHECK_CLOSE: `${XCOMPONENT}_check_close`,
-    REDIRECT: `${XCOMPONENT}_redirect`,
-    RESIZE: `${XCOMPONENT}_resize`,
-    ONRESIZE: `${XCOMPONENT}_onresize`,
-    DELEGATE: `${XCOMPONENT}_delegate`,
-    ALLOW_DELEGATE: `${XCOMPONENT}_allow_delegate`,
-    ERROR: `${XCOMPONENT}_error`,
-    HIDE: `${XCOMPONENT}_hide`,
-    SHOW: `${XCOMPONENT}_show`
+    INIT:           `${ ZOID }_init`,
+    PROPS:          `${ ZOID }_props`,
+    PROP_CALLBACK:  `${ ZOID }_prop_callback`,
+    CLOSE:          `${ ZOID }_close`,
+    CHECK_CLOSE:    `${ ZOID }_check_close`,
+    REDIRECT:       `${ ZOID }_redirect`,
+    RESIZE:         `${ ZOID }_resize`,
+    ONRESIZE:       `${ ZOID }_onresize`,
+    DELEGATE:       `${ ZOID }_delegate`,
+    ALLOW_DELEGATE: `${ ZOID }_allow_delegate`,
+    ERROR:          `${ ZOID }_error`,
+    HIDE:           `${ ZOID }_hide`,
+    SHOW:           `${ ZOID }_show`
 };
 
 export const PROP_TYPES = {
-    STRING: `string`,
-    OBJECT: `object`,
+    STRING:   `string`,
+    OBJECT:   `object`,
     FUNCTION: `function`,
-    BOOLEAN: `boolean`,
-    NUMBER: `number`
+    BOOLEAN:  `boolean`,
+    NUMBER:   `number`,
+    ARRAY:    `array`
 };
 
 export const INITIAL_PROPS = {
@@ -42,35 +41,41 @@ export const WINDOW_REFERENCES = {
     GLOBAL: `global`
 };
 
-export const PROP_TYPES_LIST = values(PROP_TYPES);
+export const PROP_SERIALIZATION = {
+    JSON:   ('json' : 'json'),
+    DOTIFY: ('dotify' : 'dotify'),
+    BASE64: ('base64' : 'base64')
+};
+
+export const PROP_TYPES_LIST : Array<string> = Object.keys(PROP_TYPES).map(key => PROP_TYPES[key]);
 
 export const CONTEXT_TYPES = {
     IFRAME: `iframe`,
-    POPUP: `popup`
+    POPUP:  `popup`
 };
 
 export const CLASS_NAMES = {
-    XCOMPONENT:        `${XCOMPONENT}`,
-    OUTLET:            `${XCOMPONENT}-outlet`,
-    COMPONENT_FRAME:   `${XCOMPONENT}-component-frame`,
-    PRERENDER_FRAME:   `${XCOMPONENT}-prerender-frame`,
-    VISIBLE:           `${XCOMPONENT}-visible`,
-    INVISIBLE:         `${XCOMPONENT}-invisible`
+    ZOID:              `${ ZOID }`,
+    OUTLET:            `${ ZOID }-outlet`,
+    COMPONENT_FRAME:   `${ ZOID }-component-frame`,
+    PRERENDER_FRAME:   `${ ZOID }-prerender-frame`,
+    VISIBLE:           `${ ZOID }-visible`,
+    INVISIBLE:         `${ ZOID }-invisible`
 };
 
 export const EVENTS = {
-    CLOSE: `${XCOMPONENT}-close`
+    CLOSE: `${ ZOID }-close`
 };
 
 export const ATTRIBUTES = {
-    IFRAME_PLACEHOLDER: `data-xcomponent-${XCOMPONENT}-placeholder`
+    IFRAME_PLACEHOLDER: `data-zoid-${ ZOID }-placeholder`
 };
 
 export const ANIMATION_NAMES = {
-    SHOW_CONTAINER: `${XCOMPONENT}-show-container`,
-    SHOW_COMPONENT: `${XCOMPONENT}-show-component`,
-    HIDE_CONTAINER: `${XCOMPONENT}-hide-container`,
-    HIDE_COMPONENT: `${XCOMPONENT}-hide-component`
+    SHOW_CONTAINER: `${ ZOID }-show-container`,
+    SHOW_COMPONENT: `${ ZOID }-show-component`,
+    HIDE_CONTAINER: `${ ZOID }-hide-container`,
+    HIDE_COMPONENT: `${ ZOID }-hide-component`
 };
 
 export const EVENT_NAMES = {
@@ -78,14 +83,14 @@ export const EVENT_NAMES = {
 };
 
 export const CLOSE_REASONS = {
-    PARENT_CALL: 'parent_call',
-    CHILD_CALL: 'child_call',
-    CLOSE_DETECTED: 'close_detected',
-    USER_CLOSED: 'user_closed',
-    PARENT_CLOSE_DETECTED: 'parent_close_detected'
+    PARENT_CALL:           ('parent_call' : 'parent_call'),
+    CHILD_CALL:            ('child_call' : 'child_call'),
+    CLOSE_DETECTED:        ('close_detected' : 'close_detected'),
+    USER_CLOSED:           ('user_closed' : 'user_closed'),
+    PARENT_CLOSE_DETECTED: ('parent_close_detected' : 'parent_close_detected')
 };
 
-export const CONTEXT_TYPES_LIST = values(CONTEXT_TYPES);
+export const CONTEXT_TYPES_LIST : Array<string> = Object.keys(CONTEXT_TYPES).map(key => CONTEXT_TYPES[key]);
 
 export const DELEGATE = {
     CALL_ORIGINAL: 'call_original',
@@ -95,6 +100,6 @@ export const DELEGATE = {
 export const WILDCARD = '*';
 
 export const DEFAULT_DIMENSIONS = {
-    WIDTH: 300,
+    WIDTH:  300,
     HEIGHT: 150
 };

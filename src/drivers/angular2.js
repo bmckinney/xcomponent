@@ -1,9 +1,9 @@
 /* @flow */
+/* eslint new-cap: 0 */
 
-import { replaceObject } from '../lib';
-import { type Component, type ComponentDriverType } from '../component/component';
+import { replaceObject } from 'belter/src';
 
-/* eslint-disable new-cap, object-shorthand */
+import type { Component, ComponentDriverType } from '../component/component';
 
 type Angular2Injection = {};
 
@@ -26,41 +26,41 @@ type Angular2 = {
 export let angular2 : ComponentDriverType<*, Angular2> = {
 
     global() {
-
+        // pass
     },
 
-    register(xcomponent : Component<*>, { Component : AngularComponent, NgModule, ElementRef, NgZone }) : Angular2Module {
+    register(zoid : Component<*>, { Component : AngularComponent, NgModule, ElementRef, NgZone }) : Angular2Module {
 
-        xcomponent.log('initializing angular2 component');
+        zoid.log('initializing angular2 component');
 
         let getProps = (component) => {
-            return replaceObject({ ...component.internalProps, ...component.props }, (value, key, fullKey) => {
-                if (typeof value === 'function') {
-                    return function() : void {
-                        return component.zone.run(() => value.apply(this, arguments));
+            return replaceObject({ ...component.internalProps, ...component.props }, item => {
+                if (typeof item === 'function') {
+                    return function angular2Wrapped() : void {
+                        return component.zone.run(() => item.apply(this, arguments));
                     };
                 }
+                return item;
             });
         };
 
         const ComponentInstance =
             AngularComponent({
-                selector: xcomponent.tag,
+                selector: zoid.tag,
                 template: '<div></div>',
-                inputs: ['props']
-            })
-            .Class({
-                constructor: [ElementRef, NgZone, function(elementRef, zone) {
+                inputs:   [ 'props' ]
+            }).Class({
+                constructor: [ ElementRef, NgZone, function angularConstructor(elementRef, zone) {
                     this.elementRef = elementRef;
                     this.zone = zone;
-                }],
-                ngOnInit: function () {
+                } ],
+                ngOnInit () {
                     const targetElement = this.elementRef.nativeElement;
-                    const parent = xcomponent.init(getProps(this), null, targetElement);
+                    const parent = zoid.init(getProps(this), null, targetElement);
                     parent.render(targetElement);
                     this.parent = parent;
                 },
-                ngOnChanges: function() {
+                ngOnChanges() {
                     if (this.parent) {
                         this.parent.updateProps(getProps(this));
                     }
@@ -69,12 +69,11 @@ export let angular2 : ComponentDriverType<*, Angular2> = {
 
 
         const ModuleInstance = NgModule({
-            declarations: [ComponentInstance],
-            exports: [ComponentInstance]
-        })
-        .Class({
-            constructor: function () {
-
+            declarations: [ ComponentInstance ],
+            exports:      [ ComponentInstance ]
+        }).Class({
+            constructor () {
+                // pass
             }
         });
 

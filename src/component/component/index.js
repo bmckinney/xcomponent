@@ -1,27 +1,32 @@
 /* @flow */
+/* eslint max-lines: 0 */
 
 import { on, send } from 'post-robot/src';
 import { ZalgoPromise } from 'zalgo-promise/src';
-import { getDomainFromUrl, matchDomain } from 'cross-domain-utils/src';
+import { getDomainFromUrl, matchDomain, type CrossDomainWindowType } from 'cross-domain-utils/src';
+import { memoize } from 'belter/src';
+import { type ElementNode } from 'jsx-pragmatic/src';
 
 import { BaseComponent } from '../base';
 import { ChildComponent } from '../child';
 import { ParentComponent, type RenderOptionsType } from '../parent';
 import { DelegateComponent, type DelegateOptionsType } from '../delegate';
-import { getInternalProps, type UserPropsDefinitionType, type BuiltInPropsDefinitionType, type PropsType, type BuiltInPropsType, type PropDefinitionType, type PropDefinitionTypeEnum, type PropTypeEnum } from './props';
-import { isXComponentWindow, getComponentMeta } from '../window';
+import { isZoidComponentWindow, getComponentMeta } from '../window';
 import { CONTEXT_TYPES, POST_MESSAGE, WILDCARD } from '../../constants';
+import { angular, angular2, glimmer, react, vue, script } from '../../drivers/index';
+import { info, error, warn } from '../../lib';
+import type { EnvStringRegExp, CssDimensionsType, StringMatcherType, ElementRefType, EnvString } from '../../types';
+
 import { validate } from './validate';
 import { defaultContainerTemplate, defaultPrerenderTemplate } from './templates';
+import { getInternalProps, type UserPropsDefinitionType, type BuiltInPropsDefinitionType, type PropsType, type BuiltInPropsType, type MixedPropDefinitionType } from './props';
 
-import * as drivers from '../../drivers';
-import { info, error, warn, setLogLevel, memoize } from '../../lib';
-
+const drivers = { angular, angular2, glimmer, react, vue, script };
 
 /*  Component
     ---------
 
-    This is the spec for the component. The idea is, when I call xcomponent.create(), it will create a new instance
+    This is the spec for the component. The idea is, when I call zoid.create(), it will create a new instance
     of Component with the blueprint needed to set up ParentComponents and ChildComponents.
 
     This is the one portion of code which is required by -- and shared to -- both the parent and child windows, and
@@ -33,7 +38,7 @@ export type ComponentOptionsType<P> = {
     tag : string,
 
     url? : EnvString,
-    buildUrl? : (BuiltInPropsType & P) => string | ZalgoPromise<string>,
+    buildUrl? : (BuiltInPropsType & P) => string,
 
     domain? : EnvStringRegExp,
     bridgeUrl? : EnvString,
@@ -44,20 +49,19 @@ export type ComponentOptionsType<P> = {
     dimensions? : CssDimensionsType,
     scrolling? : boolean,
     autoResize? : boolean | { width? : boolean, height? : boolean, element? : string },
+    listenForResize? : boolean,
 
-    defaultLogLevel? : string,
     allowedParentDomains? : StringMatcherType,
 
-    version? : string,
     defaultEnv? : string,
 
     contexts? : { iframe? : boolean, popup? : boolean },
     defaultContext? : string,
 
-    containerTemplate? : (RenderOptionsType) => HTMLElement,
-    prerenderTemplate? : (RenderOptionsType) => HTMLElement,
+    containerTemplate? : (RenderOptionsType<P>) => HTMLElement | ElementNode,
+    prerenderTemplate? : (RenderOptionsType<P>) => HTMLElement | ElementNode,
 
-    validate? : (Component<P>, PropsType) => void, // eslint-disable-line no-use-before-define
+    validate? : (Component<P>, UserPropsDefinitionType<P>) => void,
 
     unsafeRenderTo? : boolean
 };
@@ -85,25 +89,27 @@ export class Component<P> extends BaseComponent<P> {
     dimensions : CssDimensionsType
     scrolling : boolean
     autoResize : ?(boolean | { width? : boolean, height? : boolean, element? : string })
+    listenForResize : ?boolean
 
-    defaultLogLevel : string
     allowedParentDomains : StringMatcherType
 
-    version : string
-    defaultEnv : string
-    buildUrl : (BuiltInPropsType & P) => string | ZalgoPromise<string>
+    defaultEnv : ?string
+    buildUrl : (BuiltInPropsType & P) => string
 
     contexts : { iframe? : boolean, popup? : boolean }
     defaultContext : string
 
-    containerTemplate : (RenderOptionsType) => HTMLElement
-    prerenderTemplate : (RenderOptionsType) => HTMLElement
+    containerTemplate : (RenderOptionsType<P>) => HTMLElement | ElementNode
+    prerenderTemplate : (RenderOptionsType<P>) => HTMLElement | ElementNode
 
     validate : (Component<P>, (PropsType & P)) => void
 
     unsafeRenderTo : ?boolean
 
     driverCache : { [string] : mixed }
+
+    xchild : ?ChildComponent<P>
+    xprops : ?P
 
     constructor(options : ComponentOptionsType<P>) {
         super();
@@ -114,12 +120,7 @@ export class Component<P> extends BaseComponent<P> {
 
         this.addProp(options, 'tag');
 
-        this.addProp(options, 'defaultLogLevel', 'info');
-
         this.addProp(options, 'allowedParentDomains', WILDCARD);
-
-        // initially set log level to default log level configured when creating component
-        setLogLevel(this.defaultLogLevel);
 
         if (Component.components[this.tag]) {
             throw new Error(`Can not register multiple components with the same tag`);
@@ -143,8 +144,7 @@ export class Component<P> extends BaseComponent<P> {
 
         this.addProp(options, 'dimensions');
         this.addProp(options, 'scrolling');
-
-        this.addProp(options, 'version', 'latest');
+        this.addProp(options, 'listenForResize');
 
         // The default environment we should render to if none is specified in the parent
 
@@ -163,7 +163,6 @@ export class Component<P> extends BaseComponent<P> {
         this.addProp(options, 'attributes', {});
 
         // A url to use by default to render the component, if not using envs
-
 
 
         // The allowed contexts. For example { iframe: true, popup: false }
@@ -216,7 +215,8 @@ export class Component<P> extends BaseComponent<P> {
         return props;
     }
 
-    getProp<T : PropTypeEnum, S : PropDefinitionTypeEnum>(name : string) : PropDefinitionType<T, P, S> {
+    // $FlowFixMe
+    getProp(name : string) : MixedPropDefinitionType<P> {
         // $FlowFixMe
         return this.props[name] || this.builtinProps[name];
     }
@@ -239,7 +239,7 @@ export class Component<P> extends BaseComponent<P> {
 
     driver(name : string, dep : mixed) : mixed {
         if (!drivers[name]) {
-            throw new Error(`Could not find driver for framework: ${name}`);
+            throw new Error(`Could not find driver for framework: ${ name }`);
         }
 
         if (!this.driverCache[name]) {
@@ -249,25 +249,20 @@ export class Component<P> extends BaseComponent<P> {
         return this.driverCache[name];
     }
 
-    registerChild() {
-        if (isXComponentWindow()) {
-            ZalgoPromise.try(() => {
-                let componentMeta = getComponentMeta();
-
-                if (componentMeta.tag === this.tag) {
-                    window.xchild = new ChildComponent(this);
-                    window.xprops = window.xchild.props;
-                }
-            });
-        }
+    registerChild() : ZalgoPromise<?ChildComponent<P>> {
+        return ZalgoPromise.try(() => {
+            if (this.isChild()) {
+                return new ChildComponent(this);
+            }
+        });
     }
 
     listenDelegate() {
-        on(`${POST_MESSAGE.ALLOW_DELEGATE}_${this.name}`, ({ source, origin, data }) => {
+        on(`${ POST_MESSAGE.ALLOW_DELEGATE }_${ this.name }`, () => {
             return true;
         });
 
-        on(`${POST_MESSAGE.DELEGATE}_${this.name}`, ({ source, origin, data }) => {
+        on(`${ POST_MESSAGE.DELEGATE }_${ this.name }`, ({ source, origin, data }) => {
 
             let domain = this.getDomain(null, data.env || this.defaultEnv);
 
@@ -276,7 +271,7 @@ export class Component<P> extends BaseComponent<P> {
             }
 
             if (!matchDomain(domain, origin)) {
-                throw new Error(`Can not render from ${origin} - expected ${ domain.toString() }`);
+                throw new Error(`Can not render from ${ origin } - expected ${ domain.toString() }`);
             }
 
             let delegate = this.delegate(source, data.options);
@@ -289,7 +284,7 @@ export class Component<P> extends BaseComponent<P> {
     }
 
     canRenderTo(win : CrossDomainWindowType) : ZalgoPromise<boolean> {
-        return send(win, `${POST_MESSAGE.ALLOW_DELEGATE}_${this.name}`).then(({ data }) => {
+        return send(win, `${ POST_MESSAGE.ALLOW_DELEGATE }_${ this.name }`).then(({ data }) => {
             return data;
         }).catch(() => {
             return false;
@@ -309,14 +304,16 @@ export class Component<P> extends BaseComponent<P> {
             return domain;
         }
 
-        if (this.domain && typeof this.domain === 'object') {
-            for (let env of Object.keys(this.domain)) {
+        let domains = this.domain;
+
+        if (domains && typeof domains === 'object' && !(domains instanceof RegExp)) {
+            for (let env of Object.keys(domains)) {
 
                 if (env === 'test') {
                     continue;
                 }
 
-                if (domain === this.domain[env]) {
+                if (domain === domains[env]) {
                     return domain;
                 }
             }
@@ -396,31 +393,34 @@ export class Component<P> extends BaseComponent<P> {
         }
     }
 
-    getUrl(env : string, props : BuiltInPropsType & P) : ?(string | ZalgoPromise<string>) {
+    getUrl(env : string, props : BuiltInPropsType & P) : string {
 
         // $FlowFixMe
         let url = this.getForEnv(this.url, env);
 
         if (url) {
+            // $FlowFixMe
             return url;
         }
 
         if (this.buildUrl) {
             return this.buildUrl(props);
         }
+
+        throw new Error(`Unable to get url`);
     }
 
-    isXComponent() : boolean {
-        return isXComponentWindow();
+    isZoidComponent() : boolean {
+        return isZoidComponentWindow();
     }
 
     isChild() : boolean {
-        return isXComponentWindow() && window.xprops && getComponentMeta().tag === this.tag;
+        return isZoidComponentWindow() && getComponentMeta().tag === this.tag;
     }
 
 
     createError(message : string, tag : ?string) : Error {
-        return new Error(`[${ tag || this.tag  }] ${message}`);
+        return new Error(`[${ tag || this.tag  }] ${ message }`);
     }
 
 
@@ -441,11 +441,11 @@ export class Component<P> extends BaseComponent<P> {
 
     validateRenderContext(context : ?string, element : ?ElementRefType) {
         if (context && !this.contexts[context]) {
-            throw new Error(`[${this.tag}] Can not render to ${context}`);
+            throw new Error(`[${ this.tag }] Can not render to ${ context }`);
         }
 
         if (!element && context === CONTEXT_TYPES.IFRAME) {
-            throw new Error(`[${this.tag}] Context type ${CONTEXT_TYPES.IFRAME} requires an element selector`);
+            throw new Error(`[${ this.tag }] Context type ${ CONTEXT_TYPES.IFRAME } requires an element selector`);
         }
     }
 

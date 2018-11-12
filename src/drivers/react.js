@@ -1,7 +1,8 @@
 /* @flow */
 
-import { extend } from '../lib';
-import { type Component, type ComponentDriverType } from '../component/component';
+import { extend } from 'belter/src';
+
+import type { Component, ComponentDriverType } from '../component/component';
 
 declare class ReactClassType {
 
@@ -27,7 +28,7 @@ export let react : ComponentDriverType<*, ReactLibraryType> = {
     global() : ?ReactLibraryType {
         if (window.React && window.ReactDOM) {
             return {
-                React: window.React,
+                React:    window.React,
                 ReactDOM: window.ReactDOM
             };
         }

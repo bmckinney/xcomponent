@@ -1,10 +1,11 @@
 /* @flow */
 
-import { Component, type ComponentDriverType } from '../component/component';
-import { extend } from '../lib';
+import { extend } from 'belter/src';
+
+import type { Component, ComponentDriverType } from '../component/component';
 
 type VueComponent = {
-    template : string,
+    render : (Function) => Element,
     inheritAttrs : boolean,
     mounted : () => void,
     beforeUpdate : () => void
@@ -12,15 +13,16 @@ type VueComponent = {
 
 export let vue : ComponentDriverType<*, void> = {
 
-
     global() {
-
+        // pass
     },
 
     register<P>(component : Component<P>) : VueComponent {
 
         return {
-            template: `<div></div>`,
+            render(createElement) : Element {
+                return createElement('div');
+            },
 
             inheritAttrs: false,
 

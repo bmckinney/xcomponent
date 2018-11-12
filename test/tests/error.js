@@ -1,8 +1,11 @@
-import xcomponent from 'src/index';
+/* @flow */
 
+import { assert } from 'chai';
+
+import zoid from '../../src';
 import { testComponent, testComponent3 } from '../component';
 
-describe('xcomponent error cases', () => {
+describe('zoid error cases', () => {
 
     it('should error out when window.open returns a closed window', done => {
 
@@ -11,7 +14,7 @@ describe('xcomponent error cases', () => {
         window.open = () => {
             return {
                 closed: true,
-                close() {}
+                close() { /* pass */ }
             };
         };
 
@@ -19,7 +22,7 @@ describe('xcomponent error cases', () => {
             onEnter: done
 
         }).catch(err => {
-            assert.isTrue(err instanceof xcomponent.PopupOpenError, 'Expected PopupOpenError when popup is not opened');
+            assert.isTrue(err instanceof zoid.PopupOpenError, 'Expected PopupOpenError when popup is not opened');
             window.open = windowOpen;
             done();
         });
@@ -30,7 +33,8 @@ describe('xcomponent error cases', () => {
         testComponent.renderIframe({
 
             onError(err) {
-                assert.isTrue(err.message.indexOf('xxxxx') !== -1, 'Expected error to contain original error');
+                // $FlowFixMe
+                assert.isTrue(err && err.message.indexOf('xxxxx') !== -1, 'Expected error to contain original error');
                 done();
             },
 
@@ -60,13 +64,14 @@ describe('xcomponent error cases', () => {
         }, document.body);
     });
 
-    it.skip('should enter a component and error out when the page name is not valid', done => {
+    it.skip('should enter a component and error out when the page name is not valid', () => {
 
         window.open('/base/test/child.htm', 'INVALIDNAME');
     });
 
     it('should try to render a component to an unsupported context and error out', done => {
 
+        // $FlowFixMe
         testComponent3.render(null, 'moo').catch(() => {
             done();
         });
@@ -79,10 +84,11 @@ describe('xcomponent error cases', () => {
 
         delete testComponent.defaultContext;
         testComponent.contexts = {
-            popup: false,
+            popup:  false,
             iframe: true
         };
 
+        // $FlowFixMe
         testComponent.render().catch(() => {
             testComponent.defaultContext = originalDefaultContext;
             testComponent.contexts = originalContexts;
@@ -96,10 +102,11 @@ describe('xcomponent error cases', () => {
 
         delete testComponent.defaultContext;
         testComponent.contexts = {
-            popup: true,
+            popup:  true,
             iframe: false
         };
 
+        // $FlowFixMe
         testComponent.render(null, 'moo').then(() => {
             done('Expected an error to be thrown');
         }).catch(() => {
@@ -116,10 +123,11 @@ describe('xcomponent error cases', () => {
 
         delete testComponent.defaultContext;
         testComponent.contexts = {
-            popup: true,
+            popup:  true,
             iframe: false
         };
 
+        // $FlowFixMe
         testComponent.renderTo(window, null, 'moo').then(() => {
             done('Expected an error to be thrown');
         }).catch(() => {
@@ -136,10 +144,11 @@ describe('xcomponent error cases', () => {
 
         delete testComponent.defaultContext;
         testComponent.contexts = {
-            popup: false,
+            popup:  false,
             iframe: false
         };
 
+        // $FlowFixMe
         testComponent.render(null).then(() => {
             done('Expected an error to be thrown');
         }).catch(() => {
@@ -156,14 +165,15 @@ describe('xcomponent error cases', () => {
 
         delete testComponent.defaultContext;
         testComponent.contexts = {
-            popup: false,
+            popup:  false,
             iframe: true
         };
 
         try {
+            // $FlowFixMe
             testComponent.init(null, 'popup', 'moo');
             done('expected error to be thrown');
-        } catch (e) {
+        } catch (err) {
             testComponent.defaultContext = originalDefaultContext;
             testComponent.contexts = originalContexts;
 
@@ -171,7 +181,43 @@ describe('xcomponent error cases', () => {
         }
     });
 
-    it('should call onclose when a popup is closed by someone other than xcomponent', done => {
+    it('should run validate function on props, and pass up error when thrown', done => {
+        testComponent.renderPopup({
+            validateProp: 'foo'
+        }).catch(() => {
+            done();
+        });
+    });
+
+    it('should run validate function on props, and call onError when error is thrown', done => {
+        testComponent.renderPopup({
+            validateProp: 'foo',
+
+            onError() {
+                done();
+            }
+        });
+    });
+
+    it('should run validate function on component, and pass up error when thrown', done => {
+        testComponent.renderPopup({
+            invalidate: true
+        }).catch(() => {
+            done();
+        });
+    });
+
+    it('should run validate function on props, and call onError when error is thrown', done => {
+        testComponent.renderPopup({
+            invalidate: true,
+
+            onError() {
+                done();
+            }
+        });
+    });
+
+    it('should call onclose when a popup is closed by someone other tha zoid', done => {
 
         testComponent.renderPopup({
 
@@ -187,7 +233,7 @@ describe('xcomponent error cases', () => {
         });
     });
 
-    it('should call onclose when an iframe is closed by someone other than xcomponent', done => {
+    it('should call onclose when an iframe is closed by someone other tha zoid', done => {
 
         testComponent.renderIframe({
 
